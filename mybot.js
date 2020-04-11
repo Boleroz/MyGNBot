@@ -839,7 +839,9 @@ function process_log(session, data) {
 
 					if (module == 'runtime' && (action == 'startingbase' || action == 'startedbase')) {
             var baseIndex = nameMap[content[1]];
+            debugIt("fetched base index of " + baseIndex + " for " + content[1] + " with ID of " + bases[baseIndex].id, 3);
             sessions[session].id = bases[baseIndex].id;
+            debugIt("resulting session #" + session + " ID is " + sessions[session].id, 3 );
 						switch (action) {
 							case 'startingbase': sessions[session].state = "Starting"; break;
 							case 'startedbase':
@@ -1609,7 +1611,7 @@ function getStatusMessage(detailed = false) {
   return msg;
 }
 
-function debugIt(msg, level) { 
+function debugIt(msg = "", level = 1) { 
   if (debug >= level) {
     console.log("DEBUG : " + msg);
     newLogStream.write(msg + "\n", function(err){
@@ -1927,7 +1929,7 @@ function killProcess(process_name, cb){
   var killResult = "";
   debugIt("looking for " + process_name, 2);
   if ( execFileSync('c:/windows/system32/tasklist.exe').indexOf(process_name) > 0 ) {
-    debugIt("Found processes. Killing them.");
+    debugIt("Found processes. Killing them.", 2);
     killResult = execFileSync('c:/windows/system32/taskkill.exe', ["/F", "/T", "/IM", process_name]); // force, children, matching name
     SendIt( killResult); 
   };

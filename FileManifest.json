@@ -13,7 +13,7 @@
     },
     "discbot": {
         "uri": "https://github.com/Boleroz/MyDiscBot/raw/master/Exe/MyBot-win.exe",
-        "SHA1": "FFCC4FA7A2D34BAB507AFC8B0E2C744986CAC7A1"
+        "SHA1": "A083451726CFCF4B05257BFC3B0C93EE30D48C81"
     },
     "expat": {
         "uri": "https://github.com/Boleroz/MyDiscBot/raw/master/Exe/node_expat.node",
