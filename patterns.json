@@ -1,0 +1,110 @@
+{
+	"fundamentals": {
+		"mustcontain": "\\[.*\\]\\s\\s#[0-9]:",
+		"exceptions": ["errors.lostconnect", "errors.authfailure", "errors.memufailed"],
+		"time": "\\[(.*)\\s.*\\]",
+		"sessionnum": "\\s\\s#([0-9]):"
+	},
+	"logentries": {
+		"modules": {
+			"start": "Running\\sbase\\s(.*)",
+			"closingemulator": "Closing\\sEmulator",
+			"nottoday": "Today\\sis\\snot\\sthe\\sday",
+			"skipping": "Log:\\sSkipping\\s(.*)"
+		},
+		"errors": {
+			"general": "\\sError(.*)",
+			"lostconnect": "Lost\\sConnection\\sto\\sInstance\\s.*\\s\\((.*)\\)",
+			"authfailure": "Authentication\\sFailed",
+			"runtimeout": "Skipping\\saccount.\\sReason:\\sRunning\\sfor\\smore\\sthan\\s(.*)\\sminutes",
+			"starttimeout": "Skipping\\saccount.\\sTrying\\sto\\slaunch\\sfor\\smore\\sthan\\s(.*)\\sminutes.",
+			"memufailed": "MEmu\\sServices\\sstuck.\\sKilling\\sprocess\\sand\\srebooting\\sit",
+			"noexist": "Images.FindInArea\\s-\\sImage\\sdoes\\snot\\sexist:\\s(.*)",
+			"notdefined": "(.*)\\sis\\snot\\sdefined ",
+			"adbtimeout": "Skipping\\saccount.\\sADB\\sFailed\\stimeout",
+			"failedwindow": "Failed\\sto\\sdetect\\sWindow\\sfor\\sinstance(.*)",
+			"exception": "Exception\\sof\\stype\\s(.*)\\swas\\sthrown.",
+			"noinclude": "Can't\\sfind\\sinclude\\s(.*)",
+			"unexpected": "Unexepected\\serror\\sduring\\sscript\\sexecution.\\s(.*)",
+			"invalidparam": "Parameter\\sis\\snot\\svalid.",
+			"waitingforqueue": "Waiting\\sfor\\sSession\\s(.*)\\sin\\sQueue",
+			"isnull": "\\s(.*)\\sis\\snull"
+		},
+		"donation": {
+			"donated": "Log:\\sDonated\\s(.*)"
+		},
+		"training": {
+			"found": "Found\\s(.*)",
+			"tier": "Setting\\s(.*)\\stier"
+		},
+		"citybuffs": {
+			"tapping": "Tapping\\sBuff"
+		},
+		"research": {
+			"recommended": "Found\\sRecommended\\sResearch",
+			"alliancetech": "Opening\\sAlliance\\sTech\\sMenu"
+		},
+		"runtime": {
+			"startingbase": "Starting\\sinstance\\\\s(.*)",
+			"startedbase": "Instance\\s(.*)\\sstarted",
+			"finishedbase": "\\s((?!Skip)[a-zA-z0-9-_\\$\\*]+)\\sfinished",
+			"finished": ":\\s(.*)\\sfinished$",
+			"running": "Running\\s(.*)$",
+			"gamenotrunning": "Game\\snot\\srunning(.*)",
+			"allstop": "All\\ssessions\\sstopped.",
+			"connection": "Connection\\sto\\s(.*)\\sestablished",
+			"skipaction": "Skipping\\saction.\\sReason:\\sSame\\sScreen\\sfor\\smore\\sthan\\s(.*)\\sminutes.",
+			"searching": "Searching\\sfor\\s(.*)\\splace/locate\\simage",
+			"restarting": "Restarting\\sSession\\s#(0-9)",
+			"captchafailed": "Log:\\sCaptcha\\sfailed,\\sclose\\sgame.",
+			"solvingcaptcha": "Log:\\ssolving",
+			"captchacount": "Under\\s(.*)\\sobjects,\\stry\\sto\\ssolve",
+			"captchagone": "solveCaptcha\\smenu\\sgone",
+			"skipaccount": "Log:\\sSkipping\\saccount\\sfor\\s(.*)\\sminutes\\safter\\scompletion"
+		},
+		"autoshield": {
+			"notneeded": "No\\snew\\sshield\\sneeds\\sto\\sbe\\sapplied.\\sOld\\sshield\\sshould\\sstill\\sbe\\svalid.\\sSkipping\\sAutoShield\\sfor\\s(.)\\sminutes.",
+			"applied": ".*(Successfully\\sapplied\\sshield).*|.*(Shield\\sapplied).*|.*Log:\\s(Replaced\\sShield).*",
+			"finished": "base/AutoShield\\sfinished",
+			"timestampduration": "Setting\\sTimestamp\\sduration:\\s(.*)",
+			"applyshield": "Images.FindInArea\\sReShieldOKButton.*"
+		},
+		"upgrades": {
+			"upgradespecific": "Log:\\sUpgrade\\sSpecific:\\s(.*)",
+			"noresources": "Not\\senough\\sResources\\sto\\supgrade",
+			"upgrading": "Log:\\sUpgrade\\sin\\sprogress",
+			"skipupgrade": "Skipping\\sUpgrade\\sfor\\s(.*)\\sminutes",
+			"noupgrade": "could\\snot\\sfind\\sUpgrade\\sButton"
+		},
+		"store": {
+			"warning": "Log:\\sWARNING.\\sYou\\sactivated\\sbuying\\sof\\s(.*)\\sin\\sAlliance\\sStore."
+		},
+		"wait": {
+			"running": "Running\\sWait",
+			"rolled": "Rolled\\sa\\s(.*)\\s\\((.*)\\)",
+			"waiting": "Waiting\\sfor\\s(.*)\\sminutes",
+			"closing": "Closing\\sgame:\\).*)"
+		},
+		"gather": {
+			"maxmarches": "Maximum\\smarches",
+			"sent": "March\\ssent.",
+			"foundrightrss": "Found\\sright\\sresource\\sstation",
+			"failedgather": "Failed\\sto\\sgather\\sat\\sthis\\sspot",
+			"placerss": "Trying\\sto\\splace\\sresource\\sstation",
+			"cantfindrss": "Could\\snot\\sfind\\sresource\\sstation"
+		},
+		"dailies": {
+			"collectedall": "ollected\\sall\\s(.*)",
+			"helpedalliance": "Found\\shelp\\salliance\\sbutton",
+			"chopper": "Found\\s(.*).\\sTrying\\sto\\ssell.",
+			"tradefail": "Couldn't\\senter\\strade\\sdialog",
+			"heal": "Can't\\sfind\\sheal\\sbutton",
+			"hospital": "Found\\sHospital",
+			"dispatch": "Dispatching\\stransport.",
+			"dispatchfail": "No\\sdispatch\\sButton\\sFound.\\swaiting\\sfor\\sTrucks",
+			"fills": "(\\d)/(\\d)\\stries:\\s(\\d)/(\\d)\\sfills",
+			"ratiofinished": "Ratios\\sfinished.",
+			"claimedmessages": "ClaimMessages\\sdone.\\sNext\\srun\\stime\\sin:\\s(.*)\\smins"
+		}
+	}
+}

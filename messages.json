@@ -1,0 +1,67 @@
+{
+	"pre": "(#{sessionnum}) [{time}] **{base.name}**: ",
+	"post": "",
+	"default": "{full}",
+	"errors": {
+		"general": "```diff\n- ERROR: {s1}```",
+		"lostconnect": "```diff\n- ERROR: Lost connection to {s1}```",
+		"authfailure": "```diff\n- CRITICAL: Authentication failed. \n- *** ALL PROCESSING MAY HAVE STOPPED. ***\n+ TO RESOLVE USER INTERVENTION MAY BE REQUIRED!!!***```",
+		"runtimeout": "```diff\n- WARNING: Forced shutdown after {s1} minutes.\n Some actions may not have run.```",
+		"starttimeout": "```diff\n- WARNING: Failure to start after {s1} minutes.\n No actions were run.```",
+		"noexist": "```diff\n- ERROR: Could not find image {s1}```",
+		"notdefined": "```diff\n- ERROR: Not defined detected. Possible profile problem: {s1}```",
+		"adbtimeout": "```diff\n- ERROR: ADB Timeout: Account Skipped.\n Some actions may not have run.```",
+		"memufailed": "```diff\n- WARNING: MeMu failure detected.\n Most actions may not have run. Repeated failures requires reboot. Monitoring for you.```",
+		"failedwindow": "```diff\n- WARNING: MeMu failure detected.\n Most actions may not have run. Repeated failures requires reboot. Monitoring for you.```",
+		"exception": "```diff\n- CRITICAL: Exception{s1} observed. Reboot may be necessary.```",
+		"noinclude": "```diff\n- CRITICAL: Can't find include {s1}. Reboot may be necessary.```",
+		"unexpected": "```diff\n- ERROR: Unexepected error during script execution. {s1}. Please observe run for abnormalities.```",
+		"invalidparam": "```diff\n- WARNING: Invalid parameter detected. Please observe for abnormalities.```",
+		"waitingforqueue": "```diff\n- WARNING: Waiting for session in queue. Repeated messages indicated hung GNBot - GNBot restart may be required.```",
+		"isnull": "```diff\n- WARNING: {s1} is null. If this is _base etc it ia fatal and nothing is working properly. Reboot probably required.```"
+	},
+	"runtime": {
+		"startedbase": "**Starting** to process base.",
+		"skipaction": "**Action skipped**: Same screen for more than {s1} minutes",
+		"finishedbase": "**Finished** processing Base ({runtime})",
+		"gamenotrunning": "***WARNING:*** Game not running. This can happen if you log in while the base is being processed.",
+		"captchafailed": "***WARNING:*** Failed to solve captcha",
+		"solvingcaptcha": "Attempting to solve captcha",
+		"captchacount": "Solvable captcha detected. Count {s1}.",
+		"captchagone": "Captcha menu gone",
+		"skipaccount": "Account will be skipped for {s1} minutes after this run."
+	},
+	"donation": {
+		"donated": "Donated {s1} times"
+	},
+	"autoshield": {
+		"notneeded": "A shield was not needed. Skipping for {s1} minutes.",
+		"applied": "A shield was applied.",
+		"finished": "Autoshield completed.",
+		"timestampduration": "Shield applied with duration of {s1}",
+		"applyshield": "A shield apply button was searched for."
+	},
+	"modules": {
+		"start": "Running module: {s1}",
+		"finished": "Finished processing module: {s1}",
+		"nottoday": "Skipping this module for the day",
+		"skipping": "*SKIP:* {s1}"
+	},
+	"upgrades": {
+		"upgradespecific": "Seeking {s1} buildings to upgrade",
+		"upgrading": "An upgrade has been started"
+	},
+	"store": {
+		"warning": "***WARN:*** Buying {s1} from the alliance store."
+	},
+	"gather": {
+		"sent": "A march has been sent to gather"
+	},
+	"dailies": {
+		"helpedalliance": "Pressed 'help' for all alliance members"
+	},
+	"misc" : {
+		"startfailure": "```diff\n- Detected failure to start instances {failures} times on runtime of {runtime}.```",
+		"maxfailures": "```diff\n- Too many failures ( max of {maxfails} ) to start instances ( {failures} total failures ), rebooting```"
+	}
+}

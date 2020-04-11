@@ -1,0 +1,21 @@
+{
+ "active": 1,
+ "log": true,
+ "port": 3100,
+ "host": "127.0.0.1",
+ "XXXhost": "::",
+ "url": "/",
+ "ssl": {
+  "use": false,
+  "key": "/path/to/your/ssl.key",
+  "cert": "/path/to/your/ssl.crt"	
+  },
+  "options": {
+    "users": {
+      "admin": "supersecret",
+      "admin2": "supersecret2"
+    },
+    "challenge": true, 
+    "realm": "MyBotChat" 
+  }
+}

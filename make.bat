@@ -1,0 +1,1 @@
+pkg . --targets win-x64 -o Exe/MyGNBot-win.exe

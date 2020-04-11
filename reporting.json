@@ -1,0 +1,63 @@
+{
+  "runtime" : {
+    "startingbase": 1,
+    "startedbase": "ON",
+    "skipaction": "ON",
+    "finishedbase": 1,
+    "finished": "OFF",
+    "captchafailed": "ON",
+		"solvingcaptcha": "ON",
+		"captchacount": "ON",
+    "captchagone": "ON",
+    "skipaccount": "ON"
+  },
+  "modules" : {
+    "start": 0,
+    "finished": "OFF",
+    "nottoday": "OFF",
+    "skipping": "OFF"
+  },
+  "errors" : {
+    "general": "ON",
+    "lostconnect": "ON",
+    "authfailure": "ON",
+    "runtimeout": "ON",
+    "noexist": "ON",
+    "notdefined": "ON",
+    "adbtimeout": "ON",
+    "starttimeout": "ON",
+    "memufailed": "ON",
+    "failedwindow": "ON",
+    "exception": "ON",
+    "noinclude": "ON",
+    "unexpected": "OFF",
+    "invalidparam": "ON",
+    "waitingforqueue": "OFF",
+    "isnull": "ON"
+  }, 
+  "dailies" : {
+    "collectedgifts": "OFF",
+    "helpedalliance": "OFF"
+  }, 
+  "donation" : {
+    "donated": "ON"
+  },
+  "autoshield" : {
+    "notneeded": "ON",
+    "applied": "ON",
+    "applyshield": "OFF",
+    "timestampduration": "ON"
+  }, 
+  "upgrades" : {
+    "upgradespecific": "OFF",
+    "noresources": "OFF",
+    "upgrading": "OFF"
+  }, 
+  "store" : {
+    "warning": "OFF"
+  }, 
+  "gather" : {
+    "maxmarches": "OFF",
+    "sent": "OFF"
+  }
+}
