@@ -2107,7 +2107,6 @@ function setConfig(targetConfig = getDesiredActiveConfig(), force = false) {
   getMasterConfig(targetConfig, force);
   // make sure we have the latest information
   LSSConfig = loadJSON(config.GNBotProfile);
-  loadGatherCSV();
   loadBaseConfigs();
   if ( config.manageActiveBasesTime > 0 ) {
     SendIt("Updating pause state for instances");
