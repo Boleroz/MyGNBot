@@ -1423,18 +1423,6 @@ function loadPatterns() {
   return messages;
 }
 
-// fetch the gather locations from the csv
-function loadGatherCSV() {
-  if ( !reconfigure ) { return; }
-  if (fileExists(gatherFile)) {
-    gatherMap = CSVparser(fs.readFileSync(gatherFile), {colums: true, skip_empty_lines: true})
-    debugIt(util.inspect(gatherMap, true, 10, true), 4);
-  } else {
-    console.log("cannot find gather file " + gatherFile);
-    process.exit(1);
-  }
-}
-
 // Load up the base configuration 
 function loadBaseConfigs() {
   var paused_config = {};
@@ -2121,10 +2109,6 @@ function setConfig(targetConfig = getDesiredActiveConfig(), force = false) {
   LSSConfig = loadJSON(config.GNBotProfile);
   loadGatherCSV();
   loadBaseConfigs();
-  if (reconfigure) {
-    SendIt("Updating gather at positions");
-    storeJSON(makeGathers(), config.GNBotProfile);
-  }
   if ( config.manageActiveBasesTime > 0 ) {
     SendIt("Updating pause state for instances");
     storeJSON(activateBases(), config.GNBotProfile);
