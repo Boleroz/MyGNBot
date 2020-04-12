@@ -5,7 +5,7 @@ var socket;
 var oldname;
 var username;
 var typeTimer;
-var localClients = [];
+var clients = [];
 var usersTyping = [];
 var nmr = 0;
 var dev = true;
@@ -60,7 +60,7 @@ var connect = function() {
         clearTimeout(typeTimer);
         $('#admin').hide();
         typing = false;
-        localClients = [];
+        clients = [];
 
         if(connected) {
             updateBar('mdi-action-autorenew spin', 'Connection lost, reconnecting...', true);
@@ -152,15 +152,15 @@ var connect = function() {
 
                 case 'update':
                     showChat('info', null, data.user.oldun + ' changed its name to ' + data.user.un);
-                    localClients[data.user.id] = data.user;
+                    clients[data.user.id] = data.user;
                     break;
 
                 case 'connection':
                     var userip = data.user.ip ? ' [' + data.user.ip + ']' : '';
                     showChat('info', null, data.user.un + userip + ' connected to the server');
 
-                    localClients[data.user.id] = data.user;
-                    document.getElementById('users').innerHTML = Object.keys(localClients).length + ' USERS';
+                    clients[data.user.id] = data.user;
+                    document.getElementById('users').innerHTML = Object.keys(clients).length + ' USERS';
                     break;
 
                 case 'disconnection':
@@ -170,17 +170,17 @@ var connect = function() {
                         showChat('info', null, data.user.un + userip + ' disconnected from the server');
                     }
 
-                    delete localClients[data.user.id];
-                    document.getElementById('users').innerHTML = Object.keys(localClients).length + ' USERS';
+                    delete clients[data.user.id];
+                    document.getElementById('users').innerHTML = Object.keys(clients).length + ' USERS';
                     break;
 
                 case 'spam':
                     showChat('global', null, 'You have to wait 1 second between messages. Continuing on spamming the servers may get you banned. Warning ' + data.warn + ' of 5');
                     break;
 
-                case 'localClients':
-                    localClients = data.localClients;
-                    document.getElementById('users').innerHTML = Object.keys(localClients).length + ' USERS';
+                case 'clients':
+                    clients = data.clients;
+                    document.getElementById('users').innerHTML = Object.keys(clients).length + ' USERS';
                     break;
 
                 case 'user':
@@ -225,7 +225,7 @@ var connect = function() {
                     $('#menu-admin').hide();
                 }
 
-                localClients[getUserByName(data.extra).id].role = data.role;
+                clients[getUserByName(data.extra).id].role = data.role;
             }
         }
 
@@ -265,9 +265,9 @@ function updateInfo() {
 }
 
 function getUserByName(name) {
-    for(client in localClients) {
-        if(localClients[client].un == name) {
-            return localClients[client];
+    for(client in clients) {
+        if(clients[client].un == name) {
+            return clients[client];
         }
     }
 }
@@ -493,29 +493,29 @@ $(document).ready(function() {
         var userip = '';
         var admin;
 
-        for(var i in localClients) {
-            if(localClients[i] != undefined) {
-                if(localClients[i].ip) {
-                    userip = '(' + localClients[i].ip + ')';
+        for(var i in clients) {
+            if(clients[i] != undefined) {
+                if(clients[i].ip) {
+                    userip = '(' + clients[i].ip + ')';
                 }
 
-                if(localClients[i].role === 0) {
+                if(clients[i].role === 0) {
                     admin = '</li>';
                 }
                 
-                if(locallocalClients[i].role === 1) {
+                if(clients[i].role === 1) {
                     admin = ' - <b>Helper</b></li>';
                 }
 
-                if(locallocalClients[i].role === 2) {
+                if(clients[i].role === 2) {
                     admin = ' - <b>Moderator</b></li>';
                 }
 
-                if(locallocalClients[i].role === 3) {
+                if(clients[i].role === 3) {
                     admin = ' - <b>Administrator</b></li>';
                 }
 
-                content += '<li>' + '<b>#' + localClients[i].id + '</b> ' + userip + ' - ' + localClients[i].un + admin;
+                content += '<li>' + '<b>#' + clients[i].id + '</b> ' + userip + ' - ' + clients[i].un + admin;
             }
         }
 
@@ -524,28 +524,28 @@ $(document).ready(function() {
     });
 
     $('#panel').on('mouseenter', '.message', function() {
-        if(localClients[user].role > 0) {
+        if(clients[user].role > 0) {
             $(this).find('span:eq(1)').show();
             $(this).find('span:eq(2)').hide();
         }
     });
 
     $('#panel').on('mouseleave', '.message',function() {
-        if(localClients[user].role > 0) {
+        if(clients[user].role > 0) {
             $(this).find('span:eq(1)').hide();
             $(this).find('span:eq(2)').show();
         }
     });
 
     $('#panel').on('mouseenter', '.emote', function() {
-        if(localClients[user].role > 0) {
+        if(clients[user].role > 0) {
             $(this).find('span:eq(1)').show();
             $(this).find('span:eq(2)').hide();
         }
     });
 
     $('#panel').on('mouseleave', '.emote', function() {
-        if(localClients[user].role > 0) {
+        if(clients[user].role > 0) {
             $(this).find('span:eq(1)').hide();
             $(this).find('span:eq(2)').show();
         }
@@ -667,7 +667,7 @@ $(document).ready(function() {
             term = term.split(/ \s*/).pop();
 
             if (term.length > 0 && term[0] === '@') {
-                var names = $.map( localClients, function( val ) { return val.un; });
+                var names = $.map( clients, function( val ) { return val.un; });
                 results = $.ui.autocomplete.filter(names, term.substr(1));
             }
             response(results);

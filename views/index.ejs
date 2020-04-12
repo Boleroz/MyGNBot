@@ -24,6 +24,7 @@
 
 <body>
     <div class="container-fluid main">
+        <a target="_blank" href="https://github.com/IgorAntun/node-chat"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>
 
         <div class="row">
             <div class="col-xs-12 col-lg-10 col-lg-offset-1"><br>
@@ -39,6 +40,15 @@
                                 <a class="navbar-brand" href="#">MyBot Chat <span id="version" style="font-size:7pt"></span></a>
                             </div>
 
+                            <div class="collapse navbar-collapse" id="collapser">
+                                <ul class="nav navbar-nav">
+                                    <li class="active"><a href="#">Chat</a></li>
+                                    <li><a id="help" href="#">Help</a></li>
+                                    <li><a id="user" href="#">Users</a></li>
+                                    <li><a id="menu-admin" href="#" style="display:none">Admin</a></li>
+                                    <li><a id="menu-options" href="#">Options</a></li>
+                                </ul>
+                            </div>
                         </div>
                     </nav>
 
@@ -109,6 +119,7 @@
                             <br>/me or /em
                             <br>/shrug
                             <br>/name
+                            <br>/users
                             <br>/help
                             <br>/clear
                             <br>/reconnect
@@ -129,6 +140,7 @@
                             <br>Sends <i>[message]</i> in italics
                             <br>Sends <i>[message]</i> followed by '¯\_(ツ)_/¯'
                             <br>Changes your name to <i>[name]</i>
+                            <br>Shows users on the server
                             <br>Shows this help dialog
                             <br>Clears your chat history
                             <br>Reconnects to the server
@@ -205,6 +217,16 @@
 
 
 
+    <div id="users-dialog" class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <h4><b>Current users:</b></h4>
+                    <div id="users-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
         var VERSION="<%= version%>";
     </script>

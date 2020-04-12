@@ -4,8 +4,6 @@ const fs = require('fs');
 const os = require('os');
 const Tail = require('always-tail');
 const XMLparser = require('xml2json');
-// const Discord = require("discord.js");
-// const client = new Discord.Client();
 const execFileSync = require('child_process').execFileSync;
 const execFile = require('child_process').execFile;
 const spawn = require('child_process').spawn;
@@ -420,7 +418,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
   var rateInterval = [];
 
   var chat = sockjs.createServer();
-  var localClients = [];
+  var clients = [];
   var users = {};
   var bans = [];
   var uid = 1;
@@ -434,9 +432,12 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
   app.set('view engine', 'ejs');
   app.use(favicon(path.join(__dirname,'public/img/favicon.png')));
   app.use('/status', function (req, res, next) {
-    console.log('Time: %d', Date.now());
-    res.send(getStatusMessage().replace(new RegExp("\n", "g"), "<br>"));
-    next();
+    var currTime = Date.now();
+    var htmlResponse = "The current time is " + currTime + "<br>";
+    console.log(htmlResponse);
+    htmlResponse += getStatusMessage().replace(new RegExp("\n", "g"), "<br>");
+    res.send(htmlResponse);
+    // next(); // don't continue to process
   });
   app.locals.version = pack.version;
 
@@ -453,7 +454,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
       lastTime[conn.id] = Date.now();
       currentTime[conn.id] = Date.now();
 
-      localClients[conn.id] = {
+      clients[conn.id] = {
           id: uid,
           un: null,
           ip: conn.headers['x-forwarded-for'],
@@ -470,7 +471,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
       };
       
       for(i in bans) {
-          if(bans[i][0] == localClients[conn.id].ip) {
+          if(bans[i][0] == clients[conn.id].ip) {
               if(Date.now() - bans[i][1] < bans[i][2]) {
                   conn.write(JSON.stringify({type:'server', info:'rejected', reason:'banned', time:bans[i][2]}));
                   return conn.close();
@@ -480,8 +481,8 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
           }
       }
   
-      conn.write(JSON.stringify({type:'server', info:'localClients', localClients:users}));
-      conn.write(JSON.stringify({type:'server', info:'user', localClients:users[uid]}));
+      conn.write(JSON.stringify({type:'server', info:'clients', clients:users}));
+      conn.write(JSON.stringify({type:'server', info:'user', clients:users[uid]}));
       conn.on('data', function(message) {
           currentTime[conn.id] = Date.now();
           rateInterval[conn.id] = (currentTime[conn.id] - lastTime[conn.id]) / 1000;
@@ -493,13 +494,13 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
           }
 
           if(rateLimit[conn.id] < 1 && JSON.parse(message).type != 'delete' && JSON.parse(message).type != 'typing' && JSON.parse(message).type != 'ping') {
-            localClients[conn.id].warn++;
+            clients[conn.id].warn++;
 
-              if(localClients[conn.id].warn < 6) {
-                  return conn.write(JSON.stringify({type:'server', info:'spam', warn:localClients[conn.id].warn}));
+              if(clients[conn.id].warn < 6) {
+                  return conn.write(JSON.stringify({type:'server', info:'spam', warn:clients[conn.id].warn}));
               } else {
-                  bans.push([localClients[conn.id].ip, Date.now(), 5 * 1000 * 60]);
-                  chatUtils.sendToAll(localClients, {type:'ban', extra:localClients[conn.id].un, message:'Server banned ' + localClients[conn.id].un + ' from the server for 5 minutes for spamming the servers'});
+                  bans.push([clients[conn.id].ip, Date.now(), 5 * 1000 * 60]);
+                  chatUtils.sendToAll(clients, {type:'ban', extra:clients[conn.id].un, message:'Server banned ' + clients[conn.id].un + ' from the server for 5 minutes for spamming the servers'});
 
                   return conn.close();
               }
@@ -512,11 +513,11 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
                   }
 
                   if(data.type == 'typing') {
-                      return chatUtils.sendToAll(localClients, {type:'typing', typing:data.typing, user:localClients[conn.id].un});
+                      return chatUtils.sendToAll(clients, {type:'typing', typing:data.typing, user:clients[conn.id].un});
                   }
 
-                  if(data.type == 'delete' && localClients[conn.id].role > 0) {
-                      chatUtils.sendToAll(localClients, {type:'server', info:'delete', mid:data.message});
+                  if(data.type == 'delete' && clients[conn.id].role > 0) {
+                      chatUtils.sendToAll(clients, {type:'server', info:'delete', mid:data.message});
                   }
 
                   if(data.type == 'update') {
@@ -528,10 +529,10 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
                       message = JSON.stringify(data);
                   }
 
-                  if(data.type == 'pm') log('message', chalk.underline(localClients[conn.id].un) + ' to ' + chalk.underline(data.extra) + ': ' + data.message);
-                  else log('message', '[' + data.type.charAt(0).toUpperCase() + data.type.substring(1) + '] ' + chalk.underline(localClients[conn.id].un) + ': ' + data.message);
+                  if(data.type == 'pm') log('message', chalk.underline(clients[conn.id].un) + ' to ' + chalk.underline(data.extra) + ': ' + data.message);
+                  else log('message', '[' + data.type.charAt(0).toUpperCase() + data.type.substring(1) + '] ' + chalk.underline(clients[conn.id].un) + ': ' + data.message);
 
-                  handleSocket(localClients[conn.id], message);
+                  handleSocket(clients[conn.id], message);
               } catch(err) {
                   return log('error', err);
               }
@@ -541,46 +542,46 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
       });
 
       conn.on('close', function() {
-          log('socket', chalk.underline(conn.id) + ': disconnected (' + localClients[conn.id].ip + ')');
-          chatUtils.sendToAll(localClients, {type:'typing', typing:false, user:localClients[conn.id].un});
-          chatUtils.sendToAll(localClients, {type:'server', info:'disconnection', user:users[localClients[conn.id].id]});
-          delete users[localClients[conn.id].id];
-          delete localClients[conn.id];
+          log('socket', chalk.underline(conn.id) + ': disconnected (' + clients[conn.id].ip + ')');
+          chatUtils.sendToAll(clients, {type:'typing', typing:false, user:clients[conn.id].un});
+          chatUtils.sendToAll(clients, {type:'server', info:'disconnection', user:users[clients[conn.id].id]});
+          delete users[clients[conn.id].id];
+          delete clients[conn.id];
       });
   });
 
 
   /* Functions */
   function updateUser(id, name) {
-      if(name.length > 2 && name.length < 17 && name.indexOf(' ') < 0 && !chatUtils.checkUser(localClients, name) && name.match(alphanumeric) && name != 'Console' && name != 'System') {
-          if(localClients[id].un == null) {
-            localClients[id].con.write(JSON.stringify({type:'server', info:'success'}));
+      if(name.length > 2 && name.length < 17 && name.indexOf(' ') < 0 && !chatUtils.checkUser(clients, name) && name.match(alphanumeric) && name != 'Console' && name != 'System') {
+          if(clients[id].un == null) {
+            clients[id].con.write(JSON.stringify({type:'server', info:'success'}));
               uid++;
           }
 
-          users[localClients[id].id].un = name;
-          chatUtils.sendToAll(localClients, {
+          users[clients[id].id].un = name;
+          chatUtils.sendToAll(clients, {
               type: 'server',
-              info: localClients[id].un == null ? 'connection' : 'update',
+              info: clients[id].un == null ? 'connection' : 'update',
               user: {
-                  id: localClients[id].id,
-                  oldun: localClients[id].un,
+                  id: clients[id].id,
+                  oldun: clients[id].un,
                   un: name,
-                  role: localClients[id].role
+                  role: clients[id].role
               }
           });
-          localClients[id].un = name;
+          clients[id].un = name;
       } else {
           var motive = 'format';
           var check = false;
 
           if(!name.match(alphanumeric)) motive = 'format';
           if(name.length < 3 || name.length > 16) motive = 'length';
-          if(chatUtils.checkUser(localClients, name) ||  name == 'Console' || name == 'System') motive = 'taken';
-          if(localClients[id].un != null) check = true;
+          if(chatUtils.checkUser(clients, name) ||  name == 'Console' || name == 'System') motive = 'taken';
+          if(clients[id].un != null) check = true;
 
-          localClients[id].con.write(JSON.stringify({type:'server', info:'rejected', reason:motive, keep:check}));
-          if(localClients[id].un == null) localClients[id].con.close();
+          clients[id].con.write(JSON.stringify({type:'server', info:'rejected', reason:motive, keep:check}));
+          if(clients[id].un == null) clients[id].con.close();
       }
   }
 
@@ -595,15 +596,15 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
 
       switch(data.type) {
           case 'pm':
-              if(data.extra != data.user && chatUtils.checkUser(localClients, data.extra)) {
-                  chatUtils.sendToOne(localClients, users, data, data.extra, 'message');
+              if(data.extra != data.user && chatUtils.checkUser(clients, data.extra)) {
+                  chatUtils.sendToOne(clients, users, data, data.extra, 'message');
                   data.subtxt = 'PM to ' + data.extra;
-                  chatUtils.sendBack(localClients, data, user);
+                  chatUtils.sendBack(clients, data, user);
               } else {
                   data.type = 'light';
                   data.subtxt = null;
-                  data.message = chatUtils.checkUser(localClients, data.extra) ? 'You can\'t PM yourself' : 'User not found';
-                  chatUtils.sendBack(localClients, data, user);
+                  data.message = chatUtils.checkUser(clients, data.extra) ? 'You can\'t PM yourself' : 'User not found';
+                  chatUtils.sendBack(clients, data, user);
               }
               break;
 
@@ -611,39 +612,39 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
               if(user.role > 0) {
                   if(data.type == 'global') {
                       if(user.role == 3) {
-                          return chatUtils.sendToAll(localClients, data);
+                          return chatUtils.sendToAll(clients, data);
                       } else {
                           data.subtxt = null;
                           data.message = 'You don\'t have permission to do that';
-                          return chatUtils.sendBack(localClients, data, user);
+                          return chatUtils.sendBack(clients, data, user);
                       }
                   } else {
                       data.subtxt = null;
                       if(data.message != data.user) {
-                          if(chatUtils.checkUser(localClients, data.message)) {
+                          if(chatUtils.checkUser(clients, data.message)) {
                               switch(data.type) {
                                   case 'ban':
                                       var time = parseInt(data.extra);
 
                                       if(!isNaN(time) && time > 0) {
-                                          if(user.role > 1 && chatUtils.getUserByName(localClients, data.message).role == 0) {
-                                              for(var client in localClients) {
-                                                  if(localClients[client].un == data.message) {
-                                                      bans.push([localClients[client].ip, Date.now(), time * 1000 * 60]);
+                                          if(user.role > 1 && chatUtils.getUserByName(clients, data.message).role == 0) {
+                                              for(var client in clients) {
+                                                  if(clients[client].un == data.message) {
+                                                      bans.push([clients[client].ip, Date.now(), time * 1000 * 60]);
                                                   }
                                               }
 
                                               data.extra = data.message;
                                               data.message = data.user + ' banned ' + data.message + ' from the server for ' + time + ' minutes';
-                                              return chatUtils.sendToAll(localClients, data);
+                                              return chatUtils.sendToAll(clients, data);
                                           } else {
                                               data.message = 'You don\'t have permission to do that';
-                                              return chatUtils.sendBack(localClients, data, user);
+                                              return chatUtils.sendBack(clients, data, user);
                                           }
                                       } else {
                                           data.type = 'light';
                                           data.message = 'Use /ban [user] [minutes]';
-                                          return chatUtils.sendToOne(localClients, users, data, data.user, 'message')
+                                          return chatUtils.sendToOne(clients, users, data, data.user, 'message')
                                       }
                                       break;
 
@@ -660,48 +661,48 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
                                               if(data.role == 3) role = 'Administrator';
                                               data.message = data.user + ' set ' + data.message + '\'s role to ' + role;
 
-                                              chatUtils.sendToOne(localClients, users, data, JSON.parse(message).message, 'role');
-                                              chatUtils.sendToAll(localClients, {type:'server', info:'localClients', localClients:users});
+                                              chatUtils.sendToOne(clients, users, data, JSON.parse(message).message, 'role');
+                                              chatUtils.sendToAll(clients, {type:'server', info:'clients', clients:users});
                                           } else {
                                               data.message = 'You don\'t have permission to do that';
-                                              return chatUtils.sendBack(localClients, data, user);
+                                              return chatUtils.sendBack(clients, data, user);
                                           }
                                       } else {
                                           data.type = 'light';
                                           data.message = 'Use /role [user] [0-3]';
-                                          return chatUtils.sendToOne(localClients, users, data, data.user, 'message')
+                                          return chatUtils.sendToOne(clients, users, data, data.user, 'message')
                                       }
                                       break;
 
                                   case 'kick':
-                                      if(user.role > 1 && chatUtils.getUserByName(localClients, data.message).role == 0) {
+                                      if(user.role > 1 && chatUtils.getUserByName(clients, data.message).role == 0) {
                                           data.extra = data.message;
                                           data.message = data.user + ' kicked ' + data.message + ' from the server';
                                       } else {
                                           data.message = 'You don\'t have permission to do that';
-                                          return chatUtils.sendBack(localClients, data, user);
+                                          return chatUtils.sendBack(clients, data, user);
                                       }
                                       break;
                               }                            
-                              chatUtils.sendToAll(localClients, data);
+                              chatUtils.sendToAll(clients, data);
                           } else {
                               data.type = 'light';
                               data.message = 'User not found';
-                              chatUtils.sendBack(localClients, data, user);
+                              chatUtils.sendBack(clients, data, user);
                           }
                       } else {
                           data.message = 'You can\'t do that to yourself';
-                          chatUtils.sendBack(localClients, data, user);
+                          chatUtils.sendBack(clients, data, user);
                       }
                   }
               } else {
                   data.message = 'You don\'t have permission to do that';
-                  chatUtils.sendBack(localClients, data, user);
+                  chatUtils.sendBack(clients, data, user);
               }
               break;
 
           default:
-              chatUtils.sendToAll(localClients, data);
+              chatUtils.sendToAll(clients, data);
               local_message(data);
               break;
       }
@@ -1086,32 +1087,15 @@ function process_message(message, owner = "anyone") {
   if (command === "status:active") {
     SendIt( getBaseActiveStatusMessage());
   } else
-  if (command === "status:skips") {
-    SendIt( getBaseSkipTimesMessage());
-  } else
-  if (command === "status:shields") {
-    SendIt( getShieldExpireStatusMessage());
-  } else
   if ( command === "status:processed") {
     SendIt( getProcessedBases());
   } else
-  if(command === "say"){
-    let text = args.join(" ");
-    message.delete();
-    message.channel.send(text);
-  }
   if (command === "order") {
     SendIt("Accounts are handled in this order");
      // XXX - prettify this at some point
     SendIt( msg_order);
   } else
-  if (command === "baseconfig") {
-// XXX - eventually make it possible to query the config
-//    var cmd = message.content.split(":");
-//     SendIt( util.inspect(bases[nameMap[cmd[1]]].cfgBlob));
-  } else
   if (command === "actions" || command === "activity") {
-    var activities = "";
     if (typeof(nameMap[commandArgs[0]]) != 'undefined') { 
       let activities = prettifyActionLog(bases[nameMap[commandArgs[0]]].activity);
       debugIt(util.inspect(bases[nameMap[commandArgs[0]]].activity), 4);
@@ -1119,12 +1103,6 @@ function process_message(message, owner = "anyone") {
     } else {
       SendIt("Usage: " + command + " <basename> - NOTE: Name must match exactly"); 
     }
-} else
-if (command === "id") {
-  SendIt( message.author.id);
-} else
-if (command === "owner") {
-  SendIt("The ID of my owner is " + config.ownerID + "\n" + "They are known as @" + config.ownerHandle);
 } else
 if (command === "help") {
   SendIt( `Common Commands:
@@ -1169,10 +1147,6 @@ if (command === "help") {
 !uptime: Display the uptime
 
 !cpu: Dump CPU information
-
-!screenshot: Take a screenshot of the desktop(s) and post them. NOTE: Requires nircmd and enabling.
-  An instance name is an optional parameter to screenshot an active instance. EG: !screenshot <instancename>
-
 
 !close: Closes an instance by name as if you clicked the X on the window. EG: Close <name> - NOTE: Requires nircmd.
 
@@ -1236,48 +1210,6 @@ if(typeof(config.ownerID) != 'undefined' && ( owner !== config.ownerID && config
   if (command === "maintenance:cancel" || command === "maint:cancel") {
     clearTimeout(maintTimerHandle);
     SendIt("Canceled maintenance window");
-  } else
-  if (command === "screenshot") {
-    if (config.screenshot) {
-      var targetWindow = commandArgs[0];
-      SendIt("Taking screenshot");
-      if ( typeof(nameMap[targetWindow]) == 'undefined' ) {
-        takeScreenshot(true);
-      } else {
-        takeWindowScreenshot(targetWindow, true);
-      }
-    } else {
-      SendIt("Screenshot not configured");
-    }
-  } else
-  if (command === "videoscreenshot") {
-    if (config.screenshot) {
-      SendIt("Taking screenshot");
-      takeVideoScreenShot(true);
-    } else {
-      SendIt("Screenshot not configured");
-    }
-  } else
-  if (command === "video") {
-    if (config.screenshot) {
-      var videoLength = commandArgs[0];
-      var targetWindow = commandArgs[1];
-      if ( isNaN(videoLength)) { 
-        if ( typeof(nameMap[targetWindow]) == 'undefined' ) {
-          // presumably they provided a window
-          targetWindow = videoLength;
-        }
-        videoLength = 30;
-      }
-      if ( typeof(nameMap[targetWindow]) == 'undefined' ) {
-        SendIt("Capturing Video. Please be patient. I'll post it when available."); 
-        setTimeout(takeVideo, 1000, true, videoLength);
-      } else {
-        setTimeout(takeVideo, 1000, true, videoLength, targetWindow);
-      }
-    } else {
-      SendIt("Screenshot (and thus video) not configured");
-    }
   } else
   if (command === "close") {
     var targetWindow = commandArgs[0];
@@ -1769,7 +1701,7 @@ function SendIt(msg = "no message provided") {
       while (bufSent < msg.length) {
         maxMsgSize = (msg.length - bufSent) >= 795 ? 795 : msg.length - bufSent;
         localMsg.message = htmlMsg.substring(bufSent, bufSent + maxMsgSize);
-        chatUtils.sendToAll(localClients, localMsg);
+        chatUtils.sendToAll(clients, localMsg);
         bufSent += maxMsgSize;
        }
     }
