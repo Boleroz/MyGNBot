@@ -136,6 +136,12 @@ config.offline = 1;
 // open the log stream as soon as we can
 var newLogStream = openNewLog(config.DuplicateLog);
 
+// back up current files
+backupFiles();
+
+// if there is a valid config that is newer use it
+updateNewerMasterConfig();
+
 // Always start with a master config
 getMasterConfig(getDesiredActiveConfig(), true); // force a clean version at startup
 
@@ -358,10 +364,58 @@ console.log("Pondering what it means to be a bot...");
 
 setTimeout(startup, 5*1000);
 
-function startup() {
+function updateNewerMasterConfig() {
+  // walk the backup directory looking for the newest loadable > 2kb config file
+  // compare that to the currently set master config
+  // if they differ prefer the newest one as master
+  var backupFiles = getFileList(config.BackupDir);
+  var targetFileMask = config.activeProfile + ".json";
+  var currentMasterFilePath = config.ConfigsDir + config.activeProfile + ".json";
+  var candidateMasterFilePath = currentMasterFilePath;
+  var currentMaster = fs.statSync(currentMasterFilePath);
+  var candidateMaster = currentMaster;
+  debugIt("Current master " + targetFileMask, 1);
+  debugIt(util.inspect(currentMaster, true, 4 ,true), 2);
+  targetBackupFiles = backupFiles.filter(file => file.includes(targetFileMask)); // we only want default.json files
+  targetBackupFiles.forEach(file => {
+    candidateMasterFilePath = config.BackupDir + file;
+    candidateMaster = fs.statSync(candidateMasterFilePath);
+    if ( candidateMaster.size > 2048 && candidateMaster.ctimeMs > currentMaster.ctimeMs) { // a < 2k config isn't legit, older doesn't matter
+      console.log("Current Master " + currentMasterFilePath + " is " + currentMaster.size + " bytes");
+      console.log("Candidate Master " + candidateMasterFilePath + " is " + candidateMaster.size + " bytes");
+      debugIt(util.inspect(candidateMaster, true, 4, true), 2);
+      if ( currentMaster.size == candidateMaster.size ) {
+        debugIt("They match", 1);
+      } else {
+        // they are different. 
+        // If it loads cleanly and is newer, assume it is the now desired configuration
+        if ( !loadJSON(candidateMasterFilePath) ) {
+          // doesn't load cleanly
+          debugIt("Candidate config doesn't load. ignoring.", 1);
+        } else {
+          // indeed it loads cleanly
+          if ( candidateMaster.ctimeMs > currentMaster.ctimeMs ) {
+            // it is newer, we just put it there after all
+            console.log("Looks like this config was created more recently and loads cleanly, using it as the new master.");
+            copyFile(candidateMasterFilePath, currentMasterFilePath, true); // it will exist, needs to be clobbered
+          } else {
+            console.log("Looks like the existing master config was created more recently. keeping.");
+          }
+        }
+      }
+    } else {
+      debugIt("candidate file too small or too old. skipping.", 1);
+    }
+  });
+}
+
+function backupFiles() {
  // back up the running config
-  copyFile(config.GNBotProfile, config.BackupDir + "default.json." + Date.now());
-  copyFile(config.MEMUInstances, config.BackupDir + "MemuHyperv.xml." + Date.now());
+ copyFile(config.GNBotProfile, config.BackupDir + "default.json." + Date.now());
+ copyFile(config.MEMUInstances, config.BackupDir + "MemuHyperv.xml." + Date.now());
+}
+
+function startup() {
   if ( !checkProcess(config.processName) ) {
     // bot isn't running, start it
     SendIt("No bot process detected at startup. Starting.");
