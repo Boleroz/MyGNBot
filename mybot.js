@@ -433,6 +433,11 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
   app.set('views', path.join(__dirname, 'views'));
   app.set('view engine', 'ejs');
   app.use(favicon(path.join(__dirname,'public/img/favicon.png')));
+  app.use('/status', function (req, res, next) {
+    console.log('Time: %d', Date.now());
+    res.send(getStatusMessage().replace(new RegExp("\n", "g"), "<br>"));
+    next();
+  });
   app.locals.version = pack.version;
 
   /* Routes */
@@ -1670,11 +1675,8 @@ function getStatusMessage(detailed = false) {
     }
   }
 
-  msg += "I have been working for you for " + elapsedTime + " minutes\n";
-  msg += "There are " +  countProcess(config.memuProcessName) + ":" + config.GNBotThreads + " active sessions\n";
+  msg += "I have been working for you for " + elapsedTime + " minutes since last start\n";
   msg += "A total of " + totalProcessed + " instances have been handled in " + elapsedTime + " minutes\n";
-  msg += "with an average processing time of " + averageProcessingTime + " minutes\n";
-  msg += "There are " + getActiveBaseCount() + "active" + " instances for a cycle time(est) of " + averageCycleTime + " minutes\n";
   if ( detailed ) { 
     msg += "=============================================\n";
     for (var num in sessions) {
