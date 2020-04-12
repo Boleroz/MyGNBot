@@ -398,7 +398,8 @@ var express = require('express');
 var basicAuth = require('express-basic-auth')
 var sockjs = require('sockjs');
 var chalk = require('chalk');
-
+var forge = require('node-forge');
+var pki = forge.pki;
 var log = require('./lib/log.js');
 var chatUtils = require('./lib/utils.js');
 var pack = require('./package.json');
@@ -704,6 +705,9 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
   if(!chatConfig.ssl.use) {
       server = http.createServer(app);
   } else {
+      if ( !fileExists(chatConfig.ssl.key) || !fileExists(chatConfig.ssl.cert)) {
+        generateSSLCert();
+      }
       var opt = {
           key: fs.readFileSync(chatConfig.ssl.key),
           cert: fs.readFileSync(chatConfig.ssl.cert)
@@ -715,6 +719,81 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
   server.listen(port, host);
   server.on('error', onError);
   server.on('listening', onListening);
+
+  // we are only looking to prevent casual prying eyes here
+  function generateSSLCert() {
+    var keys = pki.rsa.generateKeyPair(2048);
+    var cert = pki.createCertificate();
+    cert.publicKey = keys.publicKey;
+    cert.serialNumber = '01';
+    cert.validity.notBefore = new Date();
+    cert.validity.notAfter = new Date();
+    cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 3);
+    var attrs = [{
+      name: 'commonName',
+      value: chatConfig.host
+    }, {
+      name: 'countryName',
+      value: 'US'
+    }, {
+      shortName: 'ST',
+      value: 'California'
+    }, {
+      name: 'localityName',
+      value: 'ashville'
+    }, {
+      name: 'organizationName',
+      value: 'GNB'
+    }, {
+      shortName: 'OU',
+      value: 'hosted'
+    }];
+    cert.setSubject(attrs);
+    cert.setIssuer(attrs);
+    cert.setExtensions([{
+      name: 'basicConstraints',
+      cA: true
+    }, {
+      name: 'keyUsage',
+      keyCertSign: true,
+      digitalSignature: true,
+      nonRepudiation: true,
+      keyEncipherment: true,
+      dataEncipherment: true
+    }, {
+      name: 'extKeyUsage',
+      serverAuth: true,
+      clientAuth: true,
+      codeSigning: true,
+      emailProtection: true,
+      timeStamping: true
+    }, {
+      name: 'nsCertType',
+      client: true,
+      server: true,
+      email: true,
+      objsign: true,
+      sslCA: true,
+      emailCA: true,
+      objCA: true
+    }, {
+      name: 'subjectAltName',
+      altNames: [{
+        type: 6, // URI
+        value: chatConfig.host
+      }, {
+        type: 7, // IP
+        ip: chatConfig.host
+      }]
+    }, {
+      name: 'subjectKeyIdentifier'
+    }]);
+    cert.sign(keys.privateKey);
+    var privKey = pki.privateKeyToPem(keys.privateKey);
+    fs.writeFileSync(chatConfig.ssl.key, privKey);
+    var myCert = pki.certificateToPem(cert);
+    fs.writeFileSync(chatConfig.ssl.cert, myCert);
+  }
 
   function onError(error) {
       if(error.syscall !== 'listen') {

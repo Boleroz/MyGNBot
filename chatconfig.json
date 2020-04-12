@@ -6,14 +6,13 @@
  "XXXhost": "::",
  "url": "/",
  "ssl": {
-  "use": false,
-  "key": "/path/to/your/ssl.key",
-  "cert": "/path/to/your/ssl.crt"	
+  "use": true,
+  "key": "./ssl.key",
+  "cert": "./ssl.crt"	
   },
   "options": {
     "users": {
-      "admin": "supersecret",
-      "admin2": "supersecret2"
+      "admin": "supersecret"
     },
     "challenge": true, 
     "realm": "MyBotChat" 
