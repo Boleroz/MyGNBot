@@ -27,6 +27,8 @@ var defaultConfig = {
   "process_main": 0,
   "saveMyLogs": 1,
   "checkforAPK": 0,
+  "checkforGNBUpdate": 1,
+  "GNBUpdateURL": "http://goodnightbot.net/gn/gnbot/full/GNLauncher.zip",
   "apkStart": "https://www.gnbots.com/apk",
   "apkPath": "Last%20Shelter%20Survival/game.apk",
   "apkDest": "./downloaded.apk",
@@ -485,17 +487,57 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
   app.set('views', path.join(__dirname, 'views'));
   app.set('view engine', 'ejs');
   app.use(favicon(path.join(__dirname,'public/img/favicon.png')));
+
+  app.locals.version = pack.version;
+
+  /* Routes */
   app.use('/status', function (req, res, next) {
     var currTime = Date.now();
     var htmlResponse = "The current time is " + currTime + "<br>";
-    console.log(htmlResponse);
+    debugIt(htmlResponse, 2);
     htmlResponse += getStatusMessage().replace(new RegExp("\n", "g"), "<br>");
     res.send(htmlResponse);
     // next(); // don't continue to process
   });
-  app.locals.version = pack.version;
-
-  /* Routes */
+  app.use('/statusjson', function (req, res, next) {
+    var currTime = Date.now();
+    var statsJson = {};
+    updateStats();
+    statsJson.currTime = currTime;
+    statsJson.elapsedTime = elapsedTime;
+    statsJson.totalProcessed = totalProcessed;
+    statsJson.averageProcessingTime = averageProcessingTime;
+    statsJson.averageCycleTime = averageCycleTime;
+    statsJson.uptime = os.uptime / 60;
+    statsJson.freeMem = os.freemem();
+    statsJson.totalMem = os.totalmem();
+    statsJson.instances = countProcess(config.memuProcessName);
+    statsJson.botInstance = countProcess(config.processName);
+    statsJson.status = config.disabled ? "disabled" : paused ? "paused" : "active";
+    debugIt(util.inspect(statsJson, true, 4 ,true), 2);
+    res.send(JSON.stringify(statsJson));
+    // next(); // don't continue to process
+  });
+  app.use('/botstatus', function (req, res, next) {
+    debugIt("Handling botstatus request", 2);
+    res.send(countProcess(config.processName).toString());
+    // next(); // don't continue to process
+  });
+  app.use('/instances', function (req, res, next) {
+    debugIt("Handling instances request", 2);
+    res.send(countProcess(config.memuProcessName).toString());
+    // next(); // don't continue to process
+  });
+  app.use('/freemem', function (req, res, next) {
+    debugIt("Handling freemem request", 2);
+    res.send(os.freemem().toString());
+    // next(); // don't continue to process
+  });
+  app.use('/uptime', function (req, res, next) {
+    debugIt("Handling uptime request", 2);
+    res.send((os.uptime / 60).toString());
+    // next(); // don't continue to process
+  });
   app.use(chatConfig.url, basicAuth(chatConfig.options), express.static(path.join(__dirname, 'public')));
   app.get(chatConfig.url, function (req, res) {
       res.render('index', {version:pack.version});
@@ -1311,6 +1353,14 @@ if(typeof(config.ownerID) != 'undefined' && ( owner !== config.ownerID && config
     paused = 1;
     stopBot();
   } else 
+  if (command === "updategnb") {
+    SendIt("GNB update requested. This may take up to 5 minutes.");
+    paused = 1;
+    stopBot();
+    setTimeout(updateGNB, 10 * 1000);
+    setTimeout(killProcess(config.processName), 60 * 1000);
+    setTimeout(startBot, 180 * 1000);
+  } else 
   if (command === "killbot") {
     SendIt("Kill of " + config.processName + " requested");
     killProcess(config.processName);
@@ -1428,9 +1478,10 @@ function getMemuInLSSAccoutOrder() {
 }
 
 function buildBaseArray() {
-  for (baseNum=0; baseNum<LSSConfig.length; baseNum++) {
+  var memu_reference = getMemuInLSSAccoutOrder();
+  // for (baseNum=0; baseNum<LSSConfig.length; baseNum++) {
+  for (baseNum=0; baseNum<memu_reference.length; baseNum++) {
     var id = LSSConfig[baseNum].Account.Id;
-    var memu_reference = getMemuInLSSAccoutOrder();
     bases.push(Object.create(base));
     bases[baseNum]._id = id;
     bases[baseNum].id = id;
@@ -2304,6 +2355,18 @@ function execBot(time = 5) {
   }, time * 1000);
 }
 
+function updateGNB() {
+  if ( config.disabled ) { return; }
+  var myCwd = process.cwd();
+  process.chdir(config.GNBotDir);
+  const child = execFile(config.GNBotDir + config.Launcher, [config.UpdateLauncher], (error, stdout, stderr) => {
+    if (error) {
+      throw(error);
+    }
+  });
+  process.chdir(myCwd);
+}
+
 function stopBot() {
   if ( config.disabled ) { return; }
   if ( config.killstop > 0 ) {
@@ -2480,6 +2543,18 @@ function copyFile (source, dest, clobber = false) {
   console.log('Could not copy file ' + source + ' to ' + dest);
 }
 
+function checkGNB() {
+  isNewGNBAvailable(config.GNBUpdateURL, config.GNBStats).then( function(newStats) {
+    debugIt("A new GNB is available \n" + util.inspect(newStats), 1);
+    SendIt("A new GNB is available. Triggering an update. Things should return to normal within 5 minutes.");
+    // really don't feel like promisfying right now
+    stopBot(); // first stop the running bot
+    setTimeout(updateGNB, 10 * 1000); // now initiate an update 10 seconds later
+    setTimeout(killProcess, 60 * 1000, config.processName); // give that a minute to run and then kill it off
+    setTimeout(startBot, 180 * 1000); // and then start again
+  });
+}
+
 function checkAPK() {
   getRealAPKurl(config.apkStart).then(function(path) {
     apkURL = path + config.apkPath;
@@ -2540,6 +2615,32 @@ function getRealAPKurl(root) {
       reject("Server doesn't report any changes for " + apkURL);
       cb(err);
     });
+  });// Promise
+}
+
+function isNewGNBAvailable(url, oldStats) {
+  var http_or_https = http;
+  if (/^https:\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/.test(url)) {
+      http_or_https = https;
+  }
+  var myURL = new URL(url);
+  var options = {method: 'HEAD', host: myURL.host, port: myURL.port, path: myURL.pathname};
+  return new Promise( function(resolve, reject) {
+    var req = http_or_https.request(options, function(res) {
+      var serverSize = res.headers["content-length"];
+      var serverDateStr = res.headers["last-modified"];
+      var isNewFileBySize = serverSize != oldStats.size;
+      var isNewFileByDate = serverDateStr != oldStats.datestr;
+      if ( isNewFileByDate || isNewFileBySize ) {
+        oldStats.size = serverSize;
+        oldStats.datestr = serverDateStr;
+        storeJSON(oldStats, config.GNBStats)
+        resolve(oldStats);
+      } else {
+        reject("Server doesn't report any changes for " + url);
+      }
+    }); // http.request
+    req.end();
   });// Promise
 }
 
