@@ -169,6 +169,7 @@ var failures = 0;
 var success = 0;
 var paused = 0;
 var totalProcessed = 0;
+var grandTotalProcessed = 0;
 var elapsedTime = 0;
 var averageCycleTime = 0;
 var averageProcessingTime = 0;
@@ -318,6 +319,11 @@ if ( config.checkforAPK ) {
   setInterval(checkAPK, 60* 60 * 1000);
 }
 
+if ( config.checkforGNBUpdate > 0 ) {
+  SendIt("Checking for a new bot every hour");
+  setInterval(checkGNB, 60* 60 * 1000);
+}
+
 if ( config.manageActiveBasesTime > 0 ) {
   if ( !fileExists(config.PausedMaster)) {
     SendIt("Bad active base management config. (PausedMaster) - disabling.")
@@ -341,11 +347,12 @@ if ( config.minimumCycleTime > 0 ) {
 }
 
 if ( config.GNBotRestartFullCycle > 0 ) {
-  SendIt("```diff\n + Configured restarting GNBot on full cycle```");
+  SendIt("```diff\n + Configured restarting GNBot on full cycle (GNBotRestartFullCycle)```");
   if ( config.GNBotRestartInterval > 0 ) {
     config.GNBotRestartInterval = 0;
     SendIt("Disabled restarting on interval (GNBotRestartInterval) because full cycle configured.");
   }
+  setInterval(restartFullCycleCheck, 30 * 60 * 1000); // check every 30 minutes. Also handled in cycle time if needed.
 }
 
 // when we get here we aren't restarting on full cycle and have a restart interval
@@ -514,6 +521,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
     statsJson.totalMem = os.totalmem();
     statsJson.instances = countProcess(config.memuProcessName);
     statsJson.botInstance = countProcess(config.processName);
+    statsJson.grandTotalProcessed = grandTotalProcessed;
     statsJson.status = config.disabled ? "disabled" : paused ? "paused" : "active";
     debugIt(util.inspect(statsJson, true, 4 ,true), 2);
     res.send(JSON.stringify(statsJson));
@@ -1068,13 +1076,15 @@ function process_log(session, data) {
               // We have already reported on this
               return;
             }
-						sessions[session].processed += 1;
+            sessions[session].processed += 1;
+            grandTotalProcessed += 1;
             var base_id = nameMap[sessions[session].name];
             // If we start in the middle of a run, sessions may not yet be filled out.
             if (base_id != 9999 && typeof(bases[base_id]) != 'undefined') {
               bases[base_id].total_time += (time - bases[base_id].time);
               bases[base_id].runs += 1;
               bases[base_id].processed = true;
+              bases[base_id].processedCount += 1;
               runtime = timeDiffHoursMinutes(time, bases[base_id].time)
               // a case exists where things just go to shit and instances never start or start and fail really fast
               // this will catch those cases and after too many simply reboot the system
@@ -1558,6 +1568,7 @@ function loadBaseConfigs() {
     debugIt(util.inspect(LSSConfig[a], true, 7, true), 4);
     debugIt("Handling Account number " + a + " ID of " + bases[a].id, 2);
     bases[a].processed = false; // always set to not processed on new load
+    bases[a].processedCount = 0;
     if ( config.manageActiveBasesTime > 0 ) { // not managing active state. set to configured state.
       bases[a].storedActiveState = paused_config[a].Account.Active;
     } else {
@@ -1588,6 +1599,7 @@ function activateBases(minutes = config.manageActiveBasesTime) {
   for (i=0; i<bases.length; i++) {
     debugIt(bases[i].name, 1);
     bases[i].processed = false; // none of them have been processed yet
+    bases[i].processedCount = 0;
     let active = ( baseList.includes(i)) && bases[i].storedActiveState;  // only includes Skip & default active base numbers in the bases array
     LSSConfig[i].Account.Active = active;
     if ( active ) { // only display the ones that are active
@@ -1684,18 +1696,23 @@ function resetStats() {
 
 function checkCycleTime() {
   updateStats()
-  if ( config.minimumCycleTime > 0 && averageCycleTime > 0 && getProcessedBaseCount() > (getActiveBaseCount() + config.GNBotThreads + config.GNBotRestartFullCycle)) {
+  if ( config.minimumCycleTime > 0 && averageCycleTime > 0 && ( ( getProcessedBaseCount() + config.GNBotRestartFullCycle ) > getActiveBaseCount() ) ) {
     if ( !paused && ( averageCycleTime < config.minimumCycleTime) ) { 
       SendIt("```diff\n - **CAUTION**: A full cycle has completed too fast. Pausing to make up the difference.```");
       pauseBot(config.minimumCycleTime - averageCycleTime, 0);
     } else {
       // okay, not up against minimums but still need to see if we are restarting on full cycle
-      if  (!paused && config.GNBotRestartFullCycle > 0 && ( getProcessedBaseCount() + config.GNBotRestartFullCycle ) > getActiveBaseCount() ) { 
-        SendIt("```diff\n + Restarting GNBot on full cycle completion by config (GNBotRestartFullCycle)```")
-        restartBot(); 
-      }
+      restartFullCycleCheck();
     }
-  } 
+  }
+}
+
+function restartFullCycleCheck() {
+  updateStats();
+  if  (!paused && config.GNBotRestartFullCycle > 0 && ( getProcessedBaseCount() + config.GNBotRestartFullCycle ) > getActiveBaseCount() ) { 
+    SendIt("```diff\n + Restarting GNBot on full cycle completion by config (GNBotRestartFullCycle)```")
+    restartBot(); 
+  }
 }
 
 function getStatusMessage(detailed = false) {
@@ -1714,7 +1731,7 @@ function getStatusMessage(detailed = false) {
   }
 
   msg += "I have been working for you for " + elapsedTime + " minutes since last start\n";
-  msg += "A total of " + totalProcessed + " instances have been handled in " + elapsedTime + " minutes\n";
+  msg += "A total of " + grandTotalProcessed + " instances have been handled in " + elapsedTime + " minutes\n";
   if ( detailed ) { 
     msg += "=============================================\n";
     for (var num in sessions) {
@@ -1724,8 +1741,6 @@ function getStatusMessage(detailed = false) {
     }
     msg += "=============================================\n";
     msg += getProcessedBases() + " \n";
-    msg += "=============================================\n";
-    msg += getBaseSkipTimesMessage() + " \n";
   }
   return msg;
 }
