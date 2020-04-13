@@ -29,6 +29,7 @@ var defaultConfig = {
   "checkforAPK": 0,
   "checkforGNBUpdate": 1,
   "GNBUpdateURL": "http://goodnightbot.net/gn/gnbot/full/GNLauncher.zip",
+  "GNBStats": "./gnbstats.json",
   "apkStart": "https://www.gnbots.com/apk",
   "apkPath": "Last%20Shelter%20Survival/game.apk",
   "apkDest": "./downloaded.apk",
