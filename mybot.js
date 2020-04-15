@@ -522,7 +522,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
     statsJson.instances = countProcess(config.memuProcessName);
     statsJson.botInstance = countProcess(config.processName);
     statsJson.grandTotalProcessed = grandTotalProcessed;
-    statsJson.oldestTime = oldest_time;
+    statsJson.oldestTime = oldest_date;
     statsJson.status = config.disabled ? "disabled" : paused ? "paused" : "active";
     debugIt(util.inspect(statsJson, true, 4 ,true), 2);
     res.send(JSON.stringify(statsJson));
