@@ -1029,9 +1029,9 @@ function process_log(session, data) {
 
 					if (module == 'runtime' && (action == 'startingbase' || action == 'startedbase')) {
             var baseIndex = nameMap[content[1]];
-            debugIt("fetched base index of " + baseIndex + " for " + content[1] + " with ID of " + bases[baseIndex].id, 3);
+            debugIt("fetched base index of " + baseIndex + " for " + content[1] + " with ID of " + bases[baseIndex].id, 2);
             sessions[session].id = bases[baseIndex].id;
-            debugIt("resulting session #" + session + " ID is " + sessions[session].id, 3 );
+            debugIt("resulting session #" + session + " ID is " + sessions[session].id, 2);
 						switch (action) {
 							case 'startingbase': sessions[session].state = "Starting"; break;
 							case 'startedbase':
@@ -1492,32 +1492,64 @@ function buildBaseArray() {
   var memu_reference = getMemuInLSSAccoutOrder();
   // for (baseNum=0; baseNum<LSSConfig.length; baseNum++) {
   for (baseNum=0; baseNum<memu_reference.length; baseNum++) {
-    var id = LSSConfig[baseNum].Account.Id;
-    bases.push(Object.create(base));
-    bases[baseNum]._id = id;
-    bases[baseNum].id = id;
-    bases[baseNum].UUID = memu_reference[baseNum].uuid;
-    bases[baseNum].path = memu_reference[baseNum].path;
-    bases[baseNum].created = memu_reference[baseNum].created;
-    bases[baseNum].activity = {};
-    // track which entry in the array is for this base by ID
-    idMap[id] = baseNum;
-    if (!fs.existsSync(bases[baseNum].path)) {
-      console.log("Missing MEMU instance config file " + bases[baseNum].path);
-      process.exit(1);
-    } 
-    var memuConf = loadMemuXML(bases[baseNum].path);
-    for (let val of memuConf.MemuHyperv.Machine.Hardware.GuestProperties.GuestProperty) {
-      // debugIt(util.inspect(val),2);
-      switch (val.name) {
-        case "name_tag":
-          bases[baseNum].name = val.value;
-          // track which entry in the array is for this base by name
-          nameMap[bases[baseNum].name] = baseNum;
-          break;
+    debugIt("Handling MEMU entry of " + basenum + "\n" + util.inspect(memu_reference[basenum], true, 4, true), 2);
+    debugIt("LSS Config for corresponding entry " + util.inspect(LSSConfig[baseNum], true, 4 ,true), 3);
+    if ( typeof(LSSConfig[baseNum].Account) != 'undefined' && typeof(LSSConfig[baseNum].Account.Id) != 'undefined') { // memu can have them but not be configured in GNBot
+      var id = LSSConfig[baseNum].Account.Id;
+      bases.push(Object.create(base));
+      bases[baseNum]._id = id;
+      bases[baseNum].id = id;
+      bases[baseNum].UUID = memu_reference[baseNum].uuid;
+      bases[baseNum].path = memu_reference[baseNum].path;
+      bases[baseNum].created = memu_reference[baseNum].created;
+      bases[baseNum].activity = {};
+      // track which entry in the array is for this base by ID
+      idMap[id] = baseNum;
+      if (!fs.existsSync(bases[baseNum].path)) {
+        console.log("Missing MEMU instance config file " + bases[baseNum].path);
+        process.exit(1);
+      } 
+      var memuConf = loadMemuXML(bases[baseNum].path);
+      for (let val of memuConf.MemuHyperv.Machine.Hardware.GuestProperties.GuestProperty) {
+        // debugIt(util.inspect(val),2);
+        switch (val.name) {
+          case "name_tag":
+            bases[baseNum].name = val.value;
+            // track which entry in the array is for this base by name
+            nameMap[bases[baseNum].name] = baseNum;
+            break;
+        }
       }
+      debugIt(util.inspect(bases[baseNum], true, 10, true), 4);
+    } else { // memu has it but it isn't configured in GNBot
+      // NOT sure what happens when I do this... Going to try it and see.
+      // these instances are in memu but not configured in GNBot
+      debugIt("Discovered unconfigured instance " + basenum + ". Making fake instance.", 2);
+      var id = baseNum + 9999;
+      bases.push(Object.create(base));
+      bases[baseNum]._id = memu_reference.id;
+      bases[baseNum].id = memu_reference.id;      
+      bases[baseNum].UUID = memu_reference[baseNum].uuid;
+      bases[baseNum].path = memu_reference[baseNum].path;
+      bases[baseNum].created = memu_reference[baseNum].created;
+      bases[baseNum].processed = false;
+      bases[baseNum].skippable = false;
+      bases[baseNum].processedCount = 0;
+      bases[baseNum].storedActiveState = false;
+      bases[baseNum].skippable = true;
+      // make sure the LSS config has what is needed to not cause us problems
+      LSSConfig[baseNum] = { "Account": {
+        "Email": "youremail@gmail.com",
+        "Pwd": "",
+        "Id": id,
+        "Instance": 0,
+        "Setup": false,
+        "Active": false,
+        "EmailSlot": 1.0,
+        "Custom": {}
+      },
+      "List": [] };
     }
-    debugIt(util.inspect(bases[baseNum], true, 10, true), 4);
   }
 }
 
@@ -1569,7 +1601,7 @@ function loadBaseConfigs() {
     debugIt("Handling Account number " + a + " ID of " + bases[a].id, 2);
     bases[a].processed = false; // always set to not processed on new load
     bases[a].processedCount = 0;
-    if ( config.manageActiveBasesTime > 0 ) { // not managing active state. set to configured state.
+    if ( config.manageActiveBasesTime > 0 ) { // managing active state. set to configured state.
       bases[a].storedActiveState = paused_config[a].Account.Active;
     } else {
       bases[a].storedActiveState = LSSConfig[a].Account.Active;
