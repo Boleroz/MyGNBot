@@ -1,7 +1,7 @@
 {
  "active": 1,
  "log": true,
- "port": 3100,
+ "port": 8075,
  "host": "127.0.0.1",
  "XXXhost": "::",
  "url": "/",

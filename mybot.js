@@ -522,6 +522,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
     statsJson.instances = countProcess(config.memuProcessName);
     statsJson.botInstance = countProcess(config.processName);
     statsJson.grandTotalProcessed = grandTotalProcessed;
+    statsJson.oldestTime = oldest_time;
     statsJson.status = config.disabled ? "disabled" : paused ? "paused" : "active";
     debugIt(util.inspect(statsJson, true, 4 ,true), 2);
     res.send(JSON.stringify(statsJson));
@@ -1492,7 +1493,7 @@ function buildBaseArray() {
   var memu_reference = getMemuInLSSAccoutOrder();
   // for (baseNum=0; baseNum<LSSConfig.length; baseNum++) {
   for (baseNum=0; baseNum<memu_reference.length; baseNum++) {
-    debugIt("Handling MEMU entry of " + basenum + "\n" + util.inspect(memu_reference[basenum], true, 4, true), 2);
+    debugIt("Handling MEMU entry of " + baseNum + "\n" + util.inspect(memu_reference[baseNum], true, 4, true), 2);
     debugIt("LSS Config for corresponding entry " + util.inspect(LSSConfig[baseNum], true, 4 ,true), 3);
     if ( typeof(LSSConfig[baseNum].Account) != 'undefined' && typeof(LSSConfig[baseNum].Account.Id) != 'undefined') { // memu can have them but not be configured in GNBot
       var id = LSSConfig[baseNum].Account.Id;
@@ -1749,6 +1750,7 @@ function restartFullCycleCheck() {
 
 function getStatusMessage(detailed = false) {
   var msg = "";
+  var botStatus = "disabled";
   var now = Date.now();
   updateStats();
   if ( config.disabled > 0 ) { 
@@ -1756,14 +1758,16 @@ function getStatusMessage(detailed = false) {
     return msg;
   } else {
     if ( paused ) {
+      botStatus = "paused";
       msg = "The bot is currently paused for " + timeoutMinutesRemaining(pausedTimerHandle) + " more minutes\n";
     } else {
-      msg = "The bot is currently active\n";
+      botStatus = "active";
     }
   }
 
-  msg += "I have been working for you for " + elapsedTime + " minutes since last start\n";
-  msg += "A total of " + grandTotalProcessed + " instances have been handled in " + elapsedTime + " minutes\n";
+  msg += "The bot is " + botStatus + " and has been working for you for " + elapsedTime + " minutes since last start\n";
+  msg += "A total of " + totalProcessed + " instances have been handled in " + elapsedTime + " minutes\n";
+  msg += "A grand total of " + grandTotalProcessed + " instances have been handled since I started minotoring on " + oldest_date + "\n";
   if ( detailed ) { 
     msg += "=============================================\n";
     for (var num in sessions) {
