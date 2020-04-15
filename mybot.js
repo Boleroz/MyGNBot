@@ -13,6 +13,7 @@ const http = require('http');
 const crypto = require('crypto');
 
 var configFile = "./mybot.json";
+var regExe = "c:/windows/system32/reg.exe";
 var cloudLogs = {}; // will hold the cloud module if defined
 
 var defaultConfig = {
@@ -138,6 +139,17 @@ var config = loadJSON(configFile);
 config.offline = 1;
 // open the log stream as soon as we can
 var newLogStream = openNewLog(config.DuplicateLog);
+
+// fix up the log line
+var lastGNBotProductUsed = getGNBotLastProductUsed();
+
+if ( typeof(lastGNBotProductUsed) != "undefined" ) {
+  config.GNBotProfile = config.GNBotProfile.replace('{LastProduct}', lastGNBotProductUsed);
+} else {
+  console.log("Could not identify the last game played. Please run and configure GNBot at least once.");
+  // Things will most likely fail after here but don't prevent successful manual configuration
+  // process.exit(1);
+}
 
 // back up current files
 backupFiles();
@@ -2105,9 +2117,20 @@ function killProcess(process_name, cb){
   };
 }
 
+function getGNBotLastProductUsed() {
+  var lastProduct = "";
+  SendIt("Fetching the last game used");
+  debugIt("Fetching LastProduct from HKCU\\Software\\GNBots", 1);
+  // reg.exe QUERY HKCU\Software\GNBots /v LastProduct
+  var regResult = execFileSync(regExe, ["QUERY", 'HKCU\\Software\\GNBots', "/v", "LastProduct"]).toString();
+  debugIt("Fetched " + util.inspect(regResult, true, 4, true), 2);
+  lastProduct = regResult.match(new RegExp("\\s+LastProduct\\s+REG_SZ\\s+(\\w+)"))[1];
+  debugIt("LastProduct is " + lastProduct, 1);
+  return lastProduct;
+}
+
 function setGNBotLastAccount(accountID) {
   if ( config.disabled ) { return; }
-  var regExe = "c:/windows/system32/reg.exe";
   SendIt("setting start instance to " + accountID);
   debugIt("Editing registry key HKEY_CURRENT_USER/Software/GNBots and setting LastAccount to " + accountID, 2);
   execFileSync(regExe, ["ADD", 'HKCU\\Software\\GNBots', "/f", "/v", "LastAccount", "/t", "REG_DWORD", "/d", accountID]);
@@ -2117,7 +2140,6 @@ function setGNBotLastAccount(accountID) {
 // XXX - TODO: Test what happens if it isn't there at all
 function deleteGNBotLastAccount() {
   if ( config.disabled ) { return; }
-  var regExe = "c:/windows/system32/reg.exe";
   debugIt("Deleting registry key HKEY_CURRENT_USER/Software/GNBots", 2);
   execFileSync(regExe, ["DELETE", 'HKCU\\Software\\GNBots', "/f", "/v", "LastAccount"]); // delete the old value
   debugIt("Set GNBot LastAccount to " + accountID, 1);
