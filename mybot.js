@@ -21,7 +21,7 @@ var defaultConfig = {
   "MEMUPath": 'C:/Program Files/Microvirt/MEmu/MemuHyperv VMs',
   "MEMUC": 'C:/Program Files/Microvirt/MEmu/memuc.exe',
   "GNBotSettings": '{USERDIR}/Desktop/GNLauncher/settings.json',
-  "GNBotProfile": '{USERDIR}/Desktop/GNLauncher/profiles/actions/LssBot/default.json',
+  "GNBotProfile": '{USERDIR}/Desktop/GNLauncher/profiles/actions/{LastProduct}/default.json',
   "GNBotDir": '{USERDIR}/Desktop/GNLauncher/',
   "GNBotLogMask": '{GNBotDir}/logs/log_{N}.txt',
   "GNBotLogMain": '{GNBotDir}/logs/log_main.txt',
@@ -180,8 +180,8 @@ var threadFailures = 0;
 var failures = 0;
 var success = 0;
 var paused = 0;
-var totalProcessed = 0;
 var grandTotalProcessed = 0;
+var totalProcessed = 0;
 var elapsedTime = 0;
 var averageCycleTime = 0;
 var averageProcessingTime = 0;
@@ -1484,17 +1484,17 @@ function showReporting() {
 // appears that LSS reads and sorts then builds the config. 
 function getMemuInLSSAccoutOrder() {
   // Fetch the Memu instances
-  if (!fileExists(config.MEMUInstances)) {
-    console.log("Missing MEMU instances file " + config.MEMUInstances);
-    process.exit(1);
-  }
-  var memuInstances = loadMemuXML(config.MEMUInstances);
+  // turns out we cannot trust the memu instance XML to have unique entries. 
+  // Going directly to the VM directory and reading all of the VMs in instead. filesystem enforces unique... 
+
   var acct_order = [];
-  for (let val of memuInstances.MemuHyperv.Global.MachineRegistry.MachineEntry) {
-    var memu_id = parseInt(val.uuid.split("-")[4].replace("}", ""), 10);
-    var storage_path = val.src;
-    var uuid = val.uuid;
-    var created_date = val.uuid.split("-")[0].replace("{", "");
+  var memuImages = fs.readdirSync(config.MEMUPath);
+  for (let val of memuImages) {
+    var memu_id = val == "MEmu" ? 0 : parseInt(val.split("_")[1], 10);
+    var storage_path = config.MEMUPath + val + "/" + val + ".memu";
+    var instanceData = loadMemuXML(storage_path);
+    var uuid = instanceData.MemuHyperv.Machine.uuid;
+    var created_date = uuid.split("-")[0].replace("{", "");
     acct_order.push({"id": memu_id, "path": storage_path, "created": created_date, "uuid": uuid});
   }
   acct_order.sort(function(a,b) { return a.id-b.id});
