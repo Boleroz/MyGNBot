@@ -507,7 +507,6 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
   app.set('views', path.join(__dirname, 'views'));
   app.set('view engine', 'ejs');
   app.use(favicon(path.join(__dirname,'public/img/favicon.png')));
-
   app.locals.version = pack.version;
 
   /* Routes */
@@ -1537,7 +1536,7 @@ function buildBaseArray() {
     } else { // memu has it but it isn't configured in GNBot
       // NOT sure what happens when I do this... Going to try it and see.
       // these instances are in memu but not configured in GNBot
-      debugIt("Discovered unconfigured instance " + basenum + ". Making fake instance.", 2);
+      debugIt("Discovered unconfigured instance " + baseNum + ". Making fake instance.", 2);
       var id = baseNum + 9999;
       bases.push(Object.create(base));
       bases[baseNum]._id = memu_reference.id;
