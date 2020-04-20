@@ -394,6 +394,9 @@ function updateNewerMasterConfig() {
   var targetFileMask = config.activeProfile + ".json";
   var currentMasterFilePath = config.ConfigsDir + config.activeProfile + ".json";
   var candidateMasterFilePath = currentMasterFilePath;
+  if ( !fileExists(currentMasterFilePath) ) { // there is none there by default, just use what GNBot has
+    copyFile(candidateMasterFilePath, currentMasterFilePath);
+  }
   var currentMaster = fs.statSync(currentMasterFilePath);
   var candidateMaster = currentMaster;
   debugIt("Current master " + targetFileMask, 1);
@@ -2046,11 +2049,26 @@ function getActiveBaseCount() {
 }
 
 function loadStorageFile(file) {
-    var instanceMask = new RegExp(/.*\/(\d+)_data\.json/)
-    var instance = Number(file.match(instanceMask)[1]);
-    if ( Number.isInteger(instance) ) {
-        return [instance, loadJSON(file)] ;
+  debugIt("Loading requested storage file " + file, 1);
+  var instanceMask = new RegExp(/.*\/(\d+)_data\.json/)
+  var instance = Number(file.match(instanceMask)[1]);
+  var instanceData = {};
+  debugIt("Got instance number of " + instance,1);
+  if ( Number.isInteger(instance) ) {
+    instanceData = loadJSON(file);
+    if ( !instanceData ) {
+      SendIt("A problem with " + file + " was identified.");
+      copyFile(file, config.BackupDir + "/" + instance + "_data.json" + Date.now(), true);
+      fs.unlink(file, (err) => {
+        if (err) {
+          console.log(err);
+        };
+        SendIt("Deleted " + file + ". You can find a copy in the backup dir.");
+      });
+    } else {
+      return [instance, instanceData] ;
     }
+  }
 };
 
 
@@ -2118,13 +2136,12 @@ function killProcess(process_name, cb){
 
 function getGNBotLastProductUsed() {
   var lastProduct = "";
-  SendIt("Fetching the last game used");
   debugIt("Fetching LastProduct from HKCU\\Software\\GNBots", 1);
   // reg.exe QUERY HKCU\Software\GNBots /v LastProduct
   var regResult = execFileSync(regExe, ["QUERY", 'HKCU\\Software\\GNBots', "/v", "LastProduct"]).toString();
   debugIt("Fetched " + util.inspect(regResult, true, 4, true), 2);
   lastProduct = regResult.match(new RegExp("\\s+LastProduct\\s+REG_SZ\\s+(\\w+)"))[1];
-  debugIt("LastProduct is " + lastProduct, 1);
+  SendIt("The last game used was " + lastProduct);
   return lastProduct;
 }
 
@@ -2141,7 +2158,6 @@ function deleteGNBotLastAccount() {
   if ( config.disabled ) { return; }
   debugIt("Deleting registry key HKEY_CURRENT_USER/Software/GNBots", 2);
   execFileSync(regExe, ["DELETE", 'HKCU\\Software\\GNBots', "/f", "/v", "LastAccount"]); // delete the old value
-  debugIt("Set GNBot LastAccount to " + accountID, 1);
 }
 
 function countProcess(process_name, cb){
@@ -2691,7 +2707,7 @@ function getRealAPKurl(root) {
   });// Promise
 }
 
-function isNewGNBAvailable(url, oldStats) {
+function isNewGNBAvailable(url, oldStatsFile) {
   var http_or_https = http;
   if (/^https:\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/.test(url)) {
       http_or_https = https;
@@ -2702,8 +2718,20 @@ function isNewGNBAvailable(url, oldStats) {
     var req = http_or_https.request(options, function(res) {
       var serverSize = res.headers["content-length"];
       var serverDateStr = res.headers["last-modified"];
-      var isNewFileBySize = serverSize != oldStats.size;
-      var isNewFileByDate = serverDateStr != oldStats.datestr;
+      var isNewFileBySize = false;
+      var isNewFileByDate = false;
+      var oldStats = loadJSON(oldStatsFile);
+      if ( !oldStats ) {
+        SendIt("No existing stats for GNB updates, assuming first run")
+        isNewFileBySize = false;
+        isNewFileByDate = false;
+        oldStats.size = serverSize;
+        oldStats.datestr = serverDateStr;
+        storeJSON(oldStats, config.GNBStats)
+      } else {
+        isNewFileBySize = serverSize != oldStats.size;
+        isNewFileByDate = serverDateStr != oldStats.datestr;
+      }
       if ( isNewFileByDate || isNewFileBySize ) {
         oldStats.size = serverSize;
         oldStats.datestr = serverDateStr;
