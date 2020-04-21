@@ -548,8 +548,24 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
     // next(); // don't continue to process
   });
   app.use('/instances', function (req, res, next) {
+    var instanceStatus = {};
     debugIt("Handling instances request", 2);
-    res.send(countProcess(config.memuProcessName).toString());
+    instanceStatus.procs = countProcess(config.memuProcessName).toString();
+    instanceStatus.total = bases.length;
+    bases.forEach(function(base) {
+      var shaID = getSHA256Hash(base.name + base.uuid);
+      instanceStatus.shaID = {
+        name: shaID,
+        id: base.id,
+        total_time: base.total_time,
+        runs: base.runs,
+        processedCount: base.processedCount,
+        last_time: base.last_time,
+        active: base.storedActiveState,
+        totalActions: base.activity.length,
+      };
+    });
+    res.send(JSON.stringify(instanceStatus));
     // next(); // don't continue to process
   });
   app.use('/freemem', function (req, res, next) {
@@ -2812,6 +2828,12 @@ function getSHA256FileHash(filename) {
     } else {
       return 0;
     }
+}
+
+function getSHA256Hash(data) {
+  const sha256 = crypto.createHash('sha256');
+  sha256.update(data);   
+  return sha256.digest('hex');
 }
 
 function makeConfigFile(configPath = configFile) {
