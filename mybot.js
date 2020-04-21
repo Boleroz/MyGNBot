@@ -589,6 +589,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
   app.use('/instances', function (req, res, next) {
     debugIt("Handling instances request", 2);
     var currTime = Date.now();
+    var pre = "pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }.string { color: green; }.number { color: darkorange; }.boolean { color: blue; }.null { color: magenta; }.key { color: red; }";
     updateStats()
     var instanceStatus = {};
     instanceStatus.stats = {};
@@ -622,7 +623,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
         totalActions: base.activity.length,
       };
     });
-    res.send(JSONsyntaxHighlightHTML(instanceStatus));
+    res.send(pre + JSONsyntaxHighlightHTML(instanceStatus));
     // next(); // don't continue to process
   });
   app.use('/freemem', function (req, res, next) {
