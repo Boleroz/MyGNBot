@@ -547,25 +547,82 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
     res.send(countProcess(config.processName).toString());
     // next(); // don't continue to process
   });
-  app.use('/instances', function (req, res, next) {
-    var instanceStatus = {};
+  app.use('/instancejson', function (req, res, next) {
     debugIt("Handling instances request", 2);
-    instanceStatus.procs = countProcess(config.memuProcessName).toString();
-    instanceStatus.total = bases.length;
+    var currTime = Date.now();
+    updateStats()
+    var instanceStatus = {};
+    instanceStatus.stats = {};
+    instanceStatus.stats.currTime = currTime;
+    instanceStatus.stats.elapsedTime = elapsedTime;
+    instanceStatus.stats.totalProcessed = totalProcessed;
+    instanceStatus.stats.averageProcessingTime = averageProcessingTime;
+    instanceStatus.stats.averageCycleTime = averageCycleTime;
+    instanceStatus.stats.uptime = os.uptime / 60;
+    instanceStatus.stats.freeMem = os.freemem();
+    instanceStatus.stats.totalMem = os.totalmem();
+    instanceStatus.stats.instances = countProcess(config.memuProcessName);
+    instanceStatus.stats.botInstance = countProcess(config.processName);
+    instanceStatus.stats.total = bases.length;
+    instanceStatus.stats.grandTotalProcessed = grandTotalProcessed;
+    instanceStatus.stats.oldestTime = oldest_date;
+    instanceStatus.stats.status = config.disabled ? "disabled" : paused ? "paused" : "active";
+    instanceStatus.instance = {};
     bases.forEach(function(base) {
       var shaID = getSHA256Hash(base.name + base.uuid);
-      instanceStatus[shaID] = {
-        name: shaID,
+      var shaName = getSHA256Hash(base.name);
+      instanceStatus.instance.shaName = {
+        unique: shaID,
+        name: shaName,
         id: base.id,
         total_time: base.total_time,
         runs: base.runs,
         processedCount: base.processedCount,
-        last_time: base.last_time,
+        last_time: base.last_time.getUTCMilliseconds(),
         active: base.storedActiveState,
         totalActions: base.activity.length,
       };
     });
     res.send(JSON.stringify(instanceStatus));
+    // next(); // don't continue to process
+  });
+  app.use('/instances', function (req, res, next) {
+    debugIt("Handling instances request", 2);
+    var currTime = Date.now();
+    updateStats()
+    var instanceStatus = {};
+    instanceStatus.stats = {};
+    instanceStatus.stats.currTime = currTime;
+    instanceStatus.stats.elapsedTime = elapsedTime;
+    instanceStatus.stats.totalProcessed = totalProcessed;
+    instanceStatus.stats.averageProcessingTime = averageProcessingTime;
+    instanceStatus.stats.averageCycleTime = averageCycleTime;
+    instanceStatus.stats.uptime = os.uptime / 60;
+    instanceStatus.stats.freeMem = os.freemem();
+    instanceStatus.stats.totalMem = os.totalmem();
+    instanceStatus.stats.instances = countProcess(config.memuProcessName);
+    instanceStatus.stats.botInstance = countProcess(config.processName);
+    instanceStatus.stats.total = bases.length;
+    instanceStatus.stats.grandTotalProcessed = grandTotalProcessed;
+    instanceStatus.stats.oldestTime = oldest_date;
+    instanceStatus.stats.status = config.disabled ? "disabled" : paused ? "paused" : "active";
+    instanceStatus.instance = {};
+    bases.forEach(function(base) {
+      var shaID = getSHA256Hash(base.name + base.uuid);
+      var shaName = getSHA256Hash(base.name);
+      instanceStatus.instance.shaName = {
+        unique: shaID,
+        name: shaName,
+        id: base.id,
+        total_time: base.total_time,
+        runs: base.runs,
+        processedCount: base.processedCount,
+        last_time: base.last_time.getUTCMilliseconds(),
+        active: base.storedActiveState,
+        totalActions: base.activity.length,
+      };
+    });
+    res.send(JSON.stringify(instanceStatus).replace(new RegExp("\n", "g"), "<br>").replace(new RegExp("\s", "g"), "&nbsp"));
     // next(); // don't continue to process
   });
   app.use('/freemem', function (req, res, next) {
