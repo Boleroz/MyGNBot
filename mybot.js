@@ -589,7 +589,6 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
   app.use('/instances', function (req, res, next) {
     debugIt("Handling instances request", 2);
     var currTime = Date.now();
-    var pre = "pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }.string { color: green; }.number { color: darkorange; }.boolean { color: blue; }.null { color: magenta; }.key { color: red; }";
     updateStats()
     var instanceStatus = {};
     instanceStatus.stats = {};
@@ -611,7 +610,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
     bases.forEach(function(base) {
       var shaID = getSHA256Hash(base.name + base.uuid);
       var shaName = getSHA256Hash(base.name);
-      instanceStatus.instance.shaName = {
+      instanceStatus.instance[shaName] = {
         unique: shaID,
         name: shaName,
         id: base.id,
@@ -623,7 +622,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
         totalActions: base.activity.length,
       };
     });
-    res.send(pre + JSONsyntaxHighlightHTML(instanceStatus));
+    res.send(JSONsyntaxHighlightHTML(instanceStatus));
     // next(); // don't continue to process
   });
   app.use('/freemem', function (req, res, next) {
@@ -2895,11 +2894,31 @@ function getSHA256Hash(data) {
 }
 
 function JSONsyntaxHighlightHTML(json) {
+  var html = `
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+    <title>Isn't it pretty</title>
+    <style>
+        body { padding-top:5px; }
+        pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+        .string { color: green; }
+        .number { color: darkorange; }
+        .boolean { color: blue; }
+        .null { color: magenta; }
+        .key { color: red; }
+    </style>
+</head>
+<body>
+<pre>
+{JSONHERE}
+</pre>
+</body>
+</html>
+  `
   if (typeof json != 'string') {
        json = JSON.stringify(json, undefined, 2);
   }
   json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+  json = json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
       var cls = 'number';
       if (/^"/.test(match)) {
           if (/:$/.test(match)) {
@@ -2914,6 +2933,7 @@ function JSONsyntaxHighlightHTML(json) {
       }
       return '<span class="' + cls + '">' + match + '</span>';
   });
+  return html.replace("{JSONHERE}", json);
 }
 
 function makeConfigFile(configPath = configFile) {
