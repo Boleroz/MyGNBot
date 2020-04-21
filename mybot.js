@@ -554,7 +554,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
     instanceStatus.total = bases.length;
     bases.forEach(function(base) {
       var shaID = getSHA256Hash(base.name + base.uuid);
-      instanceStatus.shaID = {
+      instanceStatus[shaID] = {
         name: shaID,
         id: base.id,
         total_time: base.total_time,
