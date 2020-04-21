@@ -547,7 +547,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
     res.send(countProcess(config.processName).toString());
     // next(); // don't continue to process
   });
-  app.use('/instancejson', function (req, res, next) {
+  app.use('/instancesjson', function (req, res, next) {
     debugIt("Handling instances request", 2);
     var currTime = Date.now();
     updateStats()
@@ -622,7 +622,7 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
         totalActions: base.activity.length,
       };
     });
-    res.send(JSON.stringify(instanceStatus).replace(new RegExp("\n", "g"), "<br>").replace(new RegExp("\s", "g"), "&nbsp"));
+    res.send(JSON.stringify(instanceStatus).replace(new RegExp("\\n", "g"), "<br>").replace(new RegExp("\\s", "g"), "&nbsp"));
     // next(); // don't continue to process
   });
   app.use('/freemem', function (req, res, next) {
