@@ -514,30 +514,15 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
 
   /* Routes */
   app.use('/status', function (req, res, next) {
-    var currTime = Date.now();
-    var htmlResponse = "The current time is " + currTime + "<br>";
-    debugIt(htmlResponse, 2);
-    htmlResponse += getStatusMessage().replace(new RegExp("\n", "g"), "<br>");
-    res.send(htmlResponse);
+    debugIt("Handling status request", 2);
+    var statsJson = getSystemStatsJSON();
+    debugIt(util.inspect(statsJson, true, 4 ,true), 2);
+    res.send(JSONsyntaxHighlightHTML(statsJson));
     // next(); // don't continue to process
   });
   app.use('/statusjson', function (req, res, next) {
-    var currTime = Date.now();
-    var statsJson = {};
-    updateStats();
-    statsJson.currTime = currTime;
-    statsJson.elapsedTime = elapsedTime;
-    statsJson.totalProcessed = totalProcessed;
-    statsJson.averageProcessingTime = averageProcessingTime;
-    statsJson.averageCycleTime = averageCycleTime;
-    statsJson.uptime = os.uptime / 60;
-    statsJson.freeMem = os.freemem();
-    statsJson.totalMem = os.totalmem();
-    statsJson.instances = countProcess(config.memuProcessName);
-    statsJson.botInstance = countProcess(config.processName);
-    statsJson.grandTotalProcessed = grandTotalProcessed;
-    statsJson.oldestTime = oldest_date;
-    statsJson.status = config.disabled ? "disabled" : paused ? "paused" : "active";
+    debugIt("Handling statusjson request", 2);
+    var statsJson = getSystemStatsJSON();
     debugIt(util.inspect(statsJson, true, 4 ,true), 2);
     res.send(JSON.stringify(statsJson));
     // next(); // don't continue to process
@@ -547,81 +532,27 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
     res.send(countProcess(config.processName).toString());
     // next(); // don't continue to process
   });
-  app.use('/instancesjson', function (req, res, next) {
-    debugIt("Handling instances request", 2);
-    var currTime = Date.now();
-    updateStats()
-    var instanceStatus = {};
-    instanceStatus.stats = {};
-    instanceStatus.stats.currTime = currTime;
-    instanceStatus.stats.elapsedTime = elapsedTime;
-    instanceStatus.stats.totalProcessed = totalProcessed;
-    instanceStatus.stats.averageProcessingTime = averageProcessingTime;
-    instanceStatus.stats.averageCycleTime = averageCycleTime;
-    instanceStatus.stats.uptime = os.uptime / 60;
-    instanceStatus.stats.freeMem = os.freemem();
-    instanceStatus.stats.totalMem = os.totalmem();
-    instanceStatus.stats.instances = countProcess(config.memuProcessName);
-    instanceStatus.stats.botInstance = countProcess(config.processName);
-    instanceStatus.stats.total = bases.length;
-    instanceStatus.stats.grandTotalProcessed = grandTotalProcessed;
-    instanceStatus.stats.oldestTime = oldest_date;
-    instanceStatus.stats.status = config.disabled ? "disabled" : paused ? "paused" : "active";
-    instanceStatus.instance = {};
-    bases.forEach(function(base) {
-      var shaID = getSHA256Hash(base.name + base.uuid);
-      var shaName = getSHA256Hash(base.name);
-      instanceStatus.instance.shaName = {
-        unique: shaID,
-        name: shaName,
-        id: base.id,
-        total_time: base.total_time,
-        runs: base.runs,
-        processedCount: base.processedCount,
-        last_time: base.last_time.getUTCMilliseconds(),
-        active: base.storedActiveState,
-        totalActions: base.activity.length,
-      };
-    });
+  app.use('/instancesjson/:group', function (req, res, next) {
+    debugIt("Handling json instances request", 2);
+    var instanceStatus = getInstanceStats(req.params.group);
     res.send(JSON.stringify(instanceStatus));
+    // next(); // don't continue to process
+  });
+  app.use('/instancesjson', function (req, res, next) {
+    debugIt("Handling json instances request", 2);
+    var instanceStatus = getInstanceStats();
+    res.send(JSON.stringify(instanceStatus));
+    // next(); // don't continue to process
+  });
+  app.use('/instances/:group', function (req, res, next) {
+    debugIt("Handling instances request", 2);
+    var instanceStatus = getInstanceStats(req.params.group);
+    res.send(JSONsyntaxHighlightHTML(instanceStatus));
     // next(); // don't continue to process
   });
   app.use('/instances', function (req, res, next) {
     debugIt("Handling instances request", 2);
-    var currTime = Date.now();
-    updateStats()
-    var instanceStatus = {};
-    instanceStatus.stats = {};
-    instanceStatus.stats.currTime = currTime;
-    instanceStatus.stats.elapsedTime = elapsedTime;
-    instanceStatus.stats.totalProcessed = totalProcessed;
-    instanceStatus.stats.averageProcessingTime = averageProcessingTime;
-    instanceStatus.stats.averageCycleTime = averageCycleTime;
-    instanceStatus.stats.uptime = os.uptime / 60;
-    instanceStatus.stats.freeMem = os.freemem();
-    instanceStatus.stats.totalMem = os.totalmem();
-    instanceStatus.stats.instances = countProcess(config.memuProcessName);
-    instanceStatus.stats.botInstance = countProcess(config.processName);
-    instanceStatus.stats.total = bases.length;
-    instanceStatus.stats.grandTotalProcessed = grandTotalProcessed;
-    instanceStatus.stats.oldestTime = oldest_date;
-    instanceStatus.stats.status = config.disabled ? "disabled" : paused ? "paused" : "active";
-    instanceStatus.instance = {};
-    bases.forEach(function(base) {
-      var shaID = getSHA256Hash(base.name + base.uuid);
-      var shaName = getSHA256Hash(base.name);
-      instanceStatus.instance[shaName] = {
-        unique: shaID,
-        name: shaName,
-        id: base.id,
-        total_time: base.total_time,
-        runs: base.runs,
-        processedCount: base.processedCount,
-        last_time: base.last_time.getUTCMilliseconds(),
-        active: base.storedActiveState,
-        totalActions: base.activity.length,
-      };
-    });
+    var instanceStatus = getInstanceStats();
     res.send(JSONsyntaxHighlightHTML(instanceStatus));
     // next(); // don't continue to process
   });
@@ -1029,6 +960,57 @@ if ( chatConfig.active > 0 ) { // hack in a chat server
 config.offline = 0;
 
 // END MAIN CODE
+
+function getInstanceStats(targetGroup = null) {
+  var acceptableInput = new RegExp(/^[a-z0-9-_]+$/, "i")
+  var instanceStatus = {};
+  SendIt("Processing InstanceStats for " + targetGroup);
+  if ( !acceptableInput.test(targetGroup) ) { // only a-z A-Z 0-9 - and _ are allowed
+    debugIt("Bad targetGroup passed to getInstanceStats. ignoring.", 2);
+    targetGroup = null;
+  };
+  instanceStatus.stats = getSystemStatsJSON();
+  instanceStatus.instance = {};
+  bases.forEach(function(base) {
+    var shaID = getSHA256Hash(base.name + base.uuid);
+    var shaName = getSHA256Hash(base.name);
+    var groupName = base.name.split("__")[1] || "ungrouped";
+    if ( groupName == targetGroup || null == targetGroup ) {
+      instanceStatus.instance[shaName] = {
+        unique: shaID,
+        name: shaName,
+        group: groupName,
+        id: base.id,
+        total_time: base.total_time,
+        runs: base.runs,
+        processedCount: base.processedCount,
+        last_time: base.last_time.getUTCMilliseconds(),
+        active: base.storedActiveState,
+        totalActions: base.activity.length,
+      };
+    }
+  });
+  return instanceStatus;
+}
+
+function getSystemStatsJSON() {
+  var statsJson = {}
+  updateStats();
+  statsJson.currTime = Date.now();
+  statsJson.elapsedTime = elapsedTime;
+  statsJson.totalProcessed = totalProcessed;
+  statsJson.averageProcessingTime = averageProcessingTime;
+  statsJson.averageCycleTime = averageCycleTime;
+  statsJson.uptime = os.uptime / 60;
+  statsJson.freeMem = os.freemem();
+  statsJson.totalMem = os.totalmem();
+  statsJson.instances = countProcess(config.memuProcessName);
+  statsJson.botInstance = countProcess(config.processName);
+  statsJson.grandTotalProcessed = grandTotalProcessed;
+  statsJson.oldestTime = oldest_date;
+  statsJson.status = config.disabled ? "disabled" : paused ? "paused" : "active";
+  return statsJson;
+}
 
 function process_log(session, data) {
   debugIt(`Got data of : ${data} for session ${session}`, 3);
