@@ -45,7 +45,7 @@
 			"alliancetech": "Opening\\sAlliance\\sTech\\sMenu"
 		},
 		"runtime": {
-			"startingbase": "Starting\\sinstance\\\\s(.*)",
+			"startingbase": "Starting\\sinstance\\s(.*)",
 			"startedbase": "Instance\\s(.*)\\sstarted",
 			"finishedbase": "\\s((?!Skip)[a-zA-z0-9-_\\$\\*]+)\\sfinished",
 			"finished": ":\\s(.*)\\sfinished$",
